@@ -4,10 +4,7 @@ import time
 import re
 from pathlib import Path
 
-# Add skill scripts to path for reuse
-SKILL_DIR = Path(r"c:\Users\82106\OneDrive\바탕 화면\python_workplace\antigravity-awesome-skills\skills\notebooklm")
-sys.path.append(str(SKILL_DIR / "scripts"))
-
+# Use local dependencies copied to the project root
 from auth_manager import AuthManager
 from browser_utils import BrowserFactory, StealthUtils
 from config import QUERY_INPUT_SELECTORS, RESPONSE_SELECTORS
@@ -45,7 +42,7 @@ class NotebookReporter:
                 page.goto(self.notebook_url, wait_until="domcontentloaded")
                 
                 # Wait for NotebookLM to load
-                page.wait_for_url(re.compile(r"^https://notebooklm\.google\.com/"), timeout=15000)
+                page.wait_for_url(re.compile(r"^https://notebooklm\.google\.com/"), timeout=60000)
                 
                 # Try to close any open dialogs
                 try:

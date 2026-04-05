@@ -1,16 +1,9 @@
-"""
-Notebook Uploader Module
-Uploads text content to NotebookLM using the authenticated browser session
-"""
 import sys
 import os
 import time
 from pathlib import Path
 
-# Add skill scripts to path to reuse auth_manager
-SKILL_DIR = Path(r"c:\Users\82106\OneDrive\바탕 화면\python_workplace\antigravity-awesome-skills\skills\notebooklm")
-sys.path.append(str(SKILL_DIR / "scripts"))
-
+# Use local dependencies copied to the project root
 from auth_manager import AuthManager
 from browser_utils import BrowserFactory, StealthUtils
 from patchright.sync_api import sync_playwright
@@ -107,11 +100,16 @@ class NotebookUploader:
             page = context.new_page()
             
             try:
-                page.goto(self.notebook_url, wait_until="domcontentloaded")
-                
-                # Wait for page load - check for chat input
+                # Wait for page load
                 print(f"Waiting for notebook to load: {self.notebook_url}")
-                page.wait_for_selector("textarea", timeout=30000)
+                page.wait_for_selector("textarea, div[role='tab']", timeout=30000)
+                
+                # Check for "Sources" (출처) tab and click it to ensure "Add link" button is visible
+                print("Ensuring Sources tab is active...")
+                sources_tab = page.locator("div[role='tab']").filter(has_text="출처").first
+                if sources_tab.is_visible():
+                    sources_tab.click()
+                    time.sleep(1)
                 
                 # Check for login redirection
                 if "accounts.google.com" in page.url:

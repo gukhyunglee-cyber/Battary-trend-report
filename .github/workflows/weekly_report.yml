@@ -49,3 +49,14 @@ jobs:
     - name: 🚀 리포트 취합 및 메일 자동 발송 실행
       run: |
         xvfb-run -a python orchestrator.py
+
+    - name: 📸 실패 시 스크린샷 및 로그 저장 (Artifacts)
+      if: always() # 실패하든 성공하든 디버깅을 위해 업로드
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-files
+        path: |
+          *.png
+          *.html
+          *.pptx
+          cron.log
