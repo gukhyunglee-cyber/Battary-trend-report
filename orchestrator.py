@@ -19,10 +19,7 @@ from collector import TrendCollector
 from uploader import NotebookUploader
 from settings import NOTEBOOK_ID, NOTEBOOK_NAME
 
-# Add skill scripts to path to reuse auth_manager
-SKILL_DIR = Path(r"c:\Users\82106\OneDrive\바탕 화면\python_workplace\antigravity-awesome-skills\skills\notebooklm")
-sys.path.append(str(SKILL_DIR / "scripts"))
-
+# auth_manager is in project root (copied from skills)
 from auth_manager import AuthManager
 
 def main():
