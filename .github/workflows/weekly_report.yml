@@ -29,8 +29,8 @@ jobs:
 
     - name: 🌐 브라우저 환경 (Playwright) 세팅
       run: |
-        playwright install chromium
-        sudo playwright install-deps chromium
+        npx playwright install chromium
+        sudo npx playwright install-deps chromium
 
     - name: 🔐 구글 로그인 세션 데이터(state.json) 복원
       env:
