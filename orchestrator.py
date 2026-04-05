@@ -1,8 +1,8 @@
 """
 Orchestrator Module
-Manages the full workflow: Collect -> Report -> Email
+Manages the full workflow: Collect -> Analyze -> Report -> Email
 Supports two modes:
-  - Cloud mode (GitHub Actions): collect + local PPT + email (no NotebookLM)
+  - Cloud mode (GitHub Actions): collect + Gemini AI analysis + PPT + email
   - Local mode: collect + NotebookLM upload + AI report + email
 """
 import sys
@@ -30,145 +30,168 @@ def is_cloud_env():
 
 def run_cloud_mode():
     """
-    Cloud mode: No browser / no NotebookLM.
-    Collect data -> build PPT from raw data -> email.
+    Cloud mode: Gemini API for AI analysis (no browser needed).
+    Collect data -> AI analysis -> PPT -> email.
     """
-    print("\n[Mode] Cloud mode (GitHub Actions)")
+    print("\n[Mode] ☁️  Cloud mode (Gemini API)")
 
     # 1. Collect
-    print("\n[Collector] Gathering data...")
+    print("\n[Step 1/4] 데이터 수집...")
     collector = TrendCollector()
-    print("  - Searching Web...")
+    print("  - 웹 검색 중...")
     collector.collect_web_trends(5)
-    print("  - Searching YouTube...")
+    print("  - YouTube 검색 중...")
     collector.collect_youtube_trends(3)
 
     report_content = collector.get_combined_report()
     total = len(collector.web_results) + len(collector.youtube_results)
-    print(f"[Collector] Collected {total} items total.")
+    print(f"[Collector] 총 {total}건 수집 완료.")
 
     if total == 0:
-        print("[Collector] No data collected. Aborting.")
+        print("[Collector] 수집된 데이터가 없습니다. 중단합니다.")
         sys.exit(1)
 
     # Save raw report
     with open("trend_report.md", "w", encoding="utf-8") as f:
         f.write(report_content)
 
-    # 2. Build PPT from collected data
-    print("\n[PPT] Generating presentation from collected data...")
+    # 2. AI Analysis via Gemini
+    print("\n[Step 2/4] Gemini AI 분석...")
+    from ai_analyzer import AIAnalyzer
+
+    try:
+        analyzer = AIAnalyzer()
+
+        # Deep analysis
+        analysis = analyzer.analyze_trends(report_content)
+        if analysis:
+            with open("ai_analysis.md", "w", encoding="utf-8") as f:
+                f.write(analysis)
+            print("[AI] 심층 분석 보고서 저장 완료 (ai_analysis.md)")
+
+        # Slide content
+        slides_data = analyzer.generate_slide_content(report_content)
+
+        # Email body
+        email_body = analyzer.generate_email_body(report_content, analysis)
+
+    except Exception as e:
+        print(f"[AI] Gemini API 오류: {e}")
+        print("[AI] AI 분석 없이 기본 모드로 진행합니다...")
+        slides_data = _build_basic_slides(collector)
+        email_body = _build_basic_email(collector)
+        analysis = None
+
+    # 3. PPT Generation
+    print("\n[Step 3/4] PPT 생성...")
     from ppt_generator import PPTGenerator
 
-    slides_data = []
-    # Group web results into slides (1 slide per topic keyword group)
-    from settings import SEARCH_KEYWORDS_KR
-    for i, kw in enumerate(SEARCH_KEYWORDS_KR):
-        matching = [r for r in collector.web_results
-                    if any(word in (r.get('title', '') + r.get('description', ''))
-                           for word in kw.split())]
-        if not matching:
-            continue
-        slide = {
-            'title': kw,
-            'content': []
-        }
-        for r in matching[:4]:
-            title = r.get('title', 'N/A')
-            url = r.get('url', '')
-            desc = r.get('description', '')[:120]
-            slide['content'].append(f"{title}")
-            slide['content'].append(f"  {desc}")
-            slide['content'].append(f"  Link: {url}")
-        slides_data.append(slide)
+    if not slides_data:
+        print("[PPT] AI 슬라이드 데이터 없음. 기본 슬라이드로 대체합니다.")
+        slides_data = _build_basic_slides(collector)
 
-    # Add YouTube slide
-    if collector.youtube_results:
-        yt_slide = {
-            'title': 'YouTube - 배터리 관련 최신 영상',
-            'content': []
-        }
-        for v in collector.youtube_results[:5]:
-            yt_slide['content'].append(f"{v.get('title', 'N/A')}")
-            yt_slide['content'].append(f"  {v.get('url', '')}")
-        slides_data.append(yt_slide)
+    ppt_gen = PPTGenerator()
+    ppt_file = ppt_gen.create_presentation(slides_data, "battery_trend_report.pptx")
+    print(f"[PPT] 저장 완료: {ppt_file}")
 
-    ppt_file = None
-    if slides_data:
-        ppt_gen = PPTGenerator()
-        ppt_file = ppt_gen.create_presentation(slides_data, "battery_trend_report.pptx")
-        print(f"[PPT] Saved to {ppt_file}")
-    else:
-        print("[PPT] No slides data generated.")
-
-    # 3. Build email body from collected data
-    print("\n[Email] Building email body...")
-    today = datetime.now().strftime("%Y-%m-%d")
-    email_body = f"안녕하세요,\n\n금주({today})의 2차전지/배터리 업계 동향 리포트를 발송합니다.\n\n"
-    email_body += "=" * 50 + "\n"
-    email_body += "📰 주요 웹 기사\n"
-    email_body += "=" * 50 + "\n\n"
-
-    for i, item in enumerate(collector.web_results[:8], 1):
-        email_body += f"{i}. {item.get('title', 'N/A')}\n"
-        email_body += f"   {item.get('description', '')[:150]}\n"
-        email_body += f"   🔗 {item.get('url', '')}\n\n"
-
-    if collector.youtube_results:
-        email_body += "=" * 50 + "\n"
-        email_body += "🎬 관련 YouTube 영상\n"
-        email_body += "=" * 50 + "\n\n"
-        for i, v in enumerate(collector.youtube_results[:5], 1):
-            email_body += f"{i}. {v.get('title', 'N/A')}\n"
-            email_body += f"   🔗 {v.get('url', '')}\n\n"
-
-    email_body += "상세 내용은 첨부된 PPT를 참조 부탁드립니다.\n감사합니다.\n"
-
-    # 4. Send email
-    print("\n[Mailer] Sending email...")
+    # 4. Email
+    print("\n[Step 4/4] 이메일 발송...")
     from mailer import EmailSender
     from settings import EMAIL_RECIPIENT
 
+    if not email_body:
+        email_body = _build_basic_email(collector)
+
     if EMAIL_RECIPIENT:
         mailer = EmailSender()
-        subject = f"[Weekly] Battery Trend Report ({today})"
+        today = datetime.now().strftime("%Y-%m-%d")
+        subject = f"[Weekly] 2차전지 업계 동향 리포트 ({today})"
+
+        attachments = [ppt_file]
+        # Also attach analysis markdown if exists
+        analysis_path = os.path.join(os.getcwd(), "ai_analysis.md")
+        if os.path.exists(analysis_path):
+            attachments.append(analysis_path)
+
         if mailer.send_email(EMAIL_RECIPIENT, subject, email_body, attachment_path=ppt_file):
-            print("[Mailer] Email sent successfully!")
+            print("[Mailer] ✅ 이메일 발송 성공!")
         else:
-            print("[Mailer] Failed to send email.")
+            print("[Mailer] ❌ 이메일 발송 실패.")
             sys.exit(1)
     else:
-        print("[Mailer] No recipient configured.")
+        print("[Mailer] 수신자가 설정되지 않았습니다.")
         sys.exit(1)
+
+
+def _build_basic_slides(collector):
+    """Fallback: build basic slides from raw collected data."""
+    from settings import SEARCH_KEYWORDS_KR
+    slides_data = []
+
+    for kw in SEARCH_KEYWORDS_KR:
+        matching = [r for r in collector.web_results
+                    if any(w in (r.get('title', '') + r.get('description', ''))
+                           for w in kw.split())]
+        if not matching:
+            continue
+        slide = {'title': kw, 'content': []}
+        for r in matching[:4]:
+            slide['content'].append(r.get('title', 'N/A'))
+            slide['content'].append(f"  {r.get('description', '')[:120]}")
+            slide['content'].append(f"  🔗 {r.get('url', '')}")
+        slides_data.append(slide)
+
+    if collector.youtube_results:
+        yt_slide = {'title': 'YouTube - 배터리 관련 최신 영상', 'content': []}
+        for v in collector.youtube_results[:5]:
+            yt_slide['content'].append(v.get('title', 'N/A'))
+            yt_slide['content'].append(f"  🔗 {v.get('url', '')}")
+        slides_data.append(yt_slide)
+
+    return slides_data
+
+
+def _build_basic_email(collector):
+    """Fallback: build basic email from raw collected data."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    body = f"안녕하세요,\n\n금주({today})의 2차전지/배터리 업계 동향 리포트를 발송합니다.\n\n"
+    body += "=" * 50 + "\n📰 주요 웹 기사\n" + "=" * 50 + "\n\n"
+    for i, item in enumerate(collector.web_results[:8], 1):
+        body += f"{i}. {item.get('title', 'N/A')}\n"
+        body += f"   {item.get('description', '')[:150]}\n"
+        body += f"   🔗 {item.get('url', '')}\n\n"
+    body += "상세 내용은 첨부된 PPT를 참조 부탁드립니다.\n감사합니다.\n"
+    return body
 
 
 def run_local_mode(args):
     """
     Local mode: Uses NotebookLM for AI-powered report generation.
     """
-    print("\n[Mode] Local mode (with NotebookLM)")
+    print("\n[Mode] 🖥️  Local mode (NotebookLM)")
 
     from auth_manager import AuthManager
 
     # 1. Authentication Check
     auth = AuthManager()
     if args.force_auth or not auth.is_authenticated():
-        print("\n[Auth] Authentication required.")
+        print("\n[Auth] 인증이 필요합니다.")
         if auth.setup_auth(headless=False):
-            print("[Auth] Successfully authenticated!")
+            print("[Auth] 인증 성공!")
         else:
-            print("[Auth] Authentication failed.")
+            print("[Auth] 인증 실패.")
             return
 
     # 2. Data Collection
-    print("\n[Collector] Gathering data...")
+    print("\n[Collector] 데이터 수집 중...")
     collector = TrendCollector()
-    print("  - Searching Web...")
+    print("  - 웹 검색 중...")
     collector.collect_web_trends(3)
-    print("  - Searching YouTube...")
+    print("  - YouTube 검색 중...")
     collector.collect_youtube_trends(3)
 
     report_content = collector.get_combined_report()
-    print(f"[Collector] Collected {len(collector.web_results)} web, {len(collector.youtube_results)} videos.")
+    print(f"[Collector] 웹 {len(collector.web_results)}건, 영상 {len(collector.youtube_results)}건 수집.")
 
     if args.collect_only:
         print("\nReport Content Preview:")
@@ -181,19 +204,19 @@ def run_local_mode(args):
         notebook_url = f"https://notebooklm.google.com/notebook/{NOTEBOOK_ID}"
 
     if notebook_url:
-        print("\n[Uploader] Uploading to NotebookLM...")
+        print("\n[Uploader] NotebookLM에 업로드 중...")
         from uploader import NotebookUploader
         uploader = NotebookUploader(notebook_url)
         try:
-            uploader.upload_text(f"Trend Report", report_content)
-            print("[Uploader] Successfully uploaded!")
+            uploader.upload_text("Trend Report", report_content)
+            print("[Uploader] 업로드 성공!")
         except Exception as e:
-            print(f"[Uploader] Warning: Failed to upload: {e}")
-            print("[Uploader] Continuing with existing sources...")
+            print(f"[Uploader] 업로드 실패: {e}")
+            print("[Uploader] 기존 소스로 계속 진행합니다...")
 
     # 4. Generate Report via NotebookLM
     if notebook_url:
-        print("\n[Reporter] Generating Magazine Report...")
+        print("\n[Reporter] 매거진 리포트 생성 중...")
         from reporter import NotebookReporter
         reporter = NotebookReporter(notebook_url)
 
@@ -209,13 +232,13 @@ def run_local_mode(args):
                 f.write(report_text)
 
             # PPT via Studio slides
-            print("\n[Reporter] Downloading Studio Slides PPT...")
+            print("\n[Reporter] Studio Slides PPT 다운로드 중...")
             ppt_file = os.path.join(os.getcwd(), "battery_trend_report_ai.pptx")
             try:
                 uploader.download_studio_slides(ppt_file)
-                print(f"[PPT] AI Presentation saved to {ppt_file}")
+                print(f"[PPT] AI PPT 저장 완료: {ppt_file}")
             except Exception as e:
-                print(f"[PPT] AI slides failed: {e}, using local fallback...")
+                print(f"[PPT] Studio Slides 실패: {e}, 로컬로 대체...")
                 slide_prompt = (
                     "앞서 작성한 4가지 이슈를 바탕으로 PPT 슬라이드 내용을 작성해줘. "
                     "각 이슈마다 슬라이드 1개씩 할당. "
@@ -228,7 +251,7 @@ def run_local_mode(args):
                     ppt_file = ppt_gen.create_presentation(slides_data, "battery_trend_report_local.pptx")
 
             # Email
-            print("\n[Reporter] Generating Email Summary...")
+            print("\n[Reporter] 이메일 본문 생성 중...")
             summary_prompt = (
                 "앞서 작성한 리포트 내용을 바탕으로 이메일 본문을 작성해줘. "
                 "정중한 인사말, 핵심 이슈 4가지 요약 (관련 원본 소스 링크 URL 포함), "
@@ -236,38 +259,38 @@ def run_local_mode(args):
             )
             email_body = reporter.generate_email_summary(summary_prompt) or "리포트가 첨부되었습니다."
 
-            print("\n[Mailer] Sending Report via Email...")
+            print("\n[Mailer] 이메일 발송 중...")
             from mailer import EmailSender
             from settings import EMAIL_RECIPIENT
 
             if EMAIL_RECIPIENT:
                 mailer = EmailSender()
-                subject = f"Battery Trend Report (Weekly)"
+                subject = "Battery Trend Report (Weekly)"
                 if mailer.send_email(EMAIL_RECIPIENT, subject, email_body, attachment_path=ppt_file):
-                    print("[Mailer] Email sent successfully.")
+                    print("[Mailer] ✅ 이메일 발송 성공!")
                 else:
-                    print("[Mailer] Failed to send email.")
+                    print("[Mailer] ❌ 이메일 발송 실패.")
             else:
-                print("[Mailer] No recipient configured.")
+                print("[Mailer] 수신자 미설정.")
         else:
-            print("[Reporter] Failed to generate report.")
+            print("[Reporter] 리포트 생성 실패.")
 
 
 def main():
     parser = argparse.ArgumentParser(description='Battery Trend Reporter')
     parser.add_argument('--collect-only', action='store_true', help='Only collect data')
     parser.add_argument('--force-auth', action='store_true', help='Force re-auth')
-    parser.add_argument('--cloud', action='store_true', help='Force cloud mode (no NotebookLM)')
+    parser.add_argument('--cloud', action='store_true', help='Force cloud mode (Gemini API)')
     args = parser.parse_args()
 
-    print("=== Battery Trend Reporter ===")
+    print("=== ⚡ Battery Trend Reporter ===")
 
     if args.cloud or is_cloud_env():
         run_cloud_mode()
     else:
         run_local_mode(args)
 
-    print("\n=== Workflow Complete ===")
+    print("\n=== ✅ Workflow Complete ===")
 
 
 if __name__ == "__main__":

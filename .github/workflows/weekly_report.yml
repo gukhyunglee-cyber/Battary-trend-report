@@ -9,9 +9,6 @@ jobs:
   run-report:
     runs-on: ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -26,39 +23,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        sudo apt-get update
-        sudo apt-get install -y xvfb
-
-    - name: Install Playwright browser
-      run: |
-        python -m playwright install chromium
-        python -m playwright install-deps chromium
-
-    - name: Restore auth session
-      env:
-        AUTH_DATA: ${{ secrets.AUTH_DATA }}
-      run: |
-        if [ -z "$AUTH_DATA" ]; then
-          echo "ERROR: AUTH_DATA secret is not set"
-          exit 1
-        fi
-        mkdir -p user_data/browser_state
-        echo "$AUTH_DATA" | base64 --decode > user_data/browser_state/state.json
-        echo "Session restored OK"
 
     - name: Run report pipeline
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        xvfb-run -a python orchestrator.py
+        python orchestrator.py
 
-    - name: Upload debug artifacts
+    - name: Upload artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: debug-files
+        name: report-files
         path: |
-          *.png
-          *.html
           *.pptx
           *.md
-          cron.log
         if-no-files-found: ignore

@@ -22,3 +22,7 @@ NOTEBOOK_ID = "18b97295-4392-47b3-a23d-a1dda255147a"
 EMAIL_SENDER = os.getenv("EMAIL_SENDER", "gukhyungLee@gmail.com")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "bfxg jypj igku gcos")
 EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com")
+
+# Gemini API Settings
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
