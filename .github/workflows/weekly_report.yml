@@ -47,10 +47,6 @@ jobs:
         echo "Session restored OK"
 
     - name: Run report pipeline
-      env:
-        EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
       run: |
         xvfb-run -a python orchestrator.py
 
