@@ -18,7 +18,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip' # 패키지 다운로드 속도 최적화
+        cache: 'pip'
 
     - name: ⚙️ 의존성 패키지 설치
       run: |
@@ -32,15 +32,15 @@ jobs:
         playwright install chromium
         sudo playwright install-deps chromium
 
-    - name: 🔐 구글 로그인 세션 데이터(Cookie) 복원
+    - name: 🔐 구글 로그인 세션 데이터(state.json) 복원
       env:
         AUTH_DATA: ${{ secrets.AUTH_DATA }}
       run: |
-        # Base64로 저장된 시크릿을 zip으로 풀고 user_data로 적용
+        # Base64로 저장된 시크릿을 state.json 파일로 복원
         if [ -n "$AUTH_DATA" ]; then
-          echo "$AUTH_DATA" | base64 --decode > user_data_archive.zip
-          unzip user_data_archive.zip -d user_data/
-          echo "로그인 세션 복원 완료"
+          mkdir -p user_data/browser_state/
+          echo "$AUTH_DATA" | base64 --decode > user_data/browser_state/state.json
+          echo "세션(state.json) 복원 완료"
         else
           echo "⚠️ AUTH_DATA Secret이 설정되지 않았습니다! (NotebookLM 접근 실패 가능성)"
           exit 1
