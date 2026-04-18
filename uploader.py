@@ -382,6 +382,29 @@ class NotebookUploader:
 
                 if force_new:
                     print("[Slides] force_new=True: 소스 변경이 감지되어 새 슬라이드를 강제 생성합니다.")
+                    if artifacts_count > 0:
+                        print("[Slides] 기존 아티팩트 삭제 중...")
+                        old_btn = page.locator(more_btn_selector).first
+                        old_btn.scroll_into_view_if_needed()
+                        old_btn.click(force=True)
+                        page.wait_for_timeout(1000)
+                        
+                        del_btn = page.locator("button[role='menuitem']").filter(has_text="삭제").first
+                        if del_btn.is_visible():
+                            del_btn.click()
+                            page.wait_for_timeout(2000) # wait for deletion
+                            print("[Slides] 기존 아티팩트 삭제 완료.")
+                        else:
+                            print("[Slides] 삭제 버튼을 찾을 수 없음. 무시하고 진행...")
+                            page.keyboard.press("Escape")
+                            page.wait_for_timeout(500)
+                
+                # Check for existing slides again after potential deletion
+                artifacts_count = page.locator(more_btn_selector).count()
+                if artifacts_count > 0 and not force_new:
+                    existing_slides = page.locator(more_btn_selector).first
+                else:
+                    existing_slides = None
                 
                 if not existing_slides or not existing_slides.is_visible():
                     print("[Slides] No visible slide artifact. Attempting to locate 'Slide Materials' button...")
@@ -398,17 +421,10 @@ class NotebookUploader:
                         gen_btn.click()
                         print("[Slides] Clicked generate. Waiting for completion (can take 2 min)...")
                         
-                        # Wait for a new artifact to appear at the top
-                        for _ in range(60):
-                            if page.locator(more_btn_selector).count() > artifacts_count or not force_new:
-                                break
-                            page.wait_for_timeout(2000)
-                            
-                        # If force_new was true, the count might not reliably increase if it overwrote the old one.
-                        # Wait an extra 5 seconds just to stabilize the UI.
-                        page.wait_for_timeout(5000)
-                        
+                        # Wait for the artifact more button to appear (since we deleted it or it initially never existed)
                         page.locator(more_btn_selector).first.wait_for(state="visible", timeout=120000)
+                        page.wait_for_timeout(3000) # buffer for generation finish
+                        
                         existing_slides = page.locator(more_btn_selector).first
                     else:
                         print("[Slides] Could not find 'Slide Materials' button in Studio list.")
