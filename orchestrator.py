@@ -238,8 +238,8 @@ def run_local_mode(args):
 
         prompt = (
             "새로 추가된 자료를 바탕으로 2차전지 제조공정·설비 업계의 최근 이슈 4가지를 선정하여 심층 분석 리포트를 작성해줘. "
-            "특히 전주 대비 새롭게 등장한 기사와 변화 사항을 중점적으로 분석해줘. "
-            "각 이슈에 대해 '현황', '주요 원인', '시장 영향', '미래 전망'을 포함하여 자세히 서술할 것. "
+            "특히 배터리 제조회사별로 제조공정을 어떻게 바꿔 나가고 있는지, 어떤 신규 공법 및 새로운 설비가 도입되고 있는지를 중점적으로 분석해줘. "
+            "각 이슈에 대해 '현황', '주요 원인(배경)', '신규 공법/설비 파급효과', '미래 전망'을 포함하여 자세히 서술할 것. "
             "매거진 특집 기사 스타일로 서론과 에디터 노트도 포함해."
         )
         report_text = reporter.generate_report(prompt)
@@ -257,10 +257,11 @@ def run_local_mode(args):
             except Exception as e:
                 print(f"[PPT] Studio Slides 실패: {e}, 로컬로 대체...")
                 slide_prompt = (
-                    "앞서 작성한 4가지 이슈를 바탕으로 PPT 슬라이드 내용을 작성해줘. "
-                    "각 이슈마다 슬라이드 1개씩 할당. "
-                    "형식:\nTitle: [이슈 제목]\n- [상세 설명 1]\n- [상세 설명 2]..."
-                )
+            "앞서 작성한 4가지 이슈를 바탕으로 PPT 슬라이드 내용을 작성해줘. "
+            "각 이슈마다 슬라이드 1개씩 할당. "
+            "작성 시 배터리 제조회사별 제조공정의 변화 내용, 신규 공법 및 도입 설비를 위주로 정리해줘. "
+            "형식:\nTitle: [이슈 제목]\n- [상세 설명 1]\n- [상세 설명 2]..."
+        )
                 slides_data = reporter.generate_slide_content(slide_prompt)
                 if slides_data:
                     from ppt_generator import PPTGenerator

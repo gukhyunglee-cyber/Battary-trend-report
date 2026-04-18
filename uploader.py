@@ -392,8 +392,28 @@ class NotebookUploader:
                         del_btn = page.locator("button[role='menuitem']").filter(has_text="삭제").first
                         if del_btn.is_visible():
                             del_btn.click()
-                            page.wait_for_timeout(2000) # wait for deletion
+                            page.wait_for_timeout(1000) # wait for modal
+                            
+                            # Check if a confirmation dialog appeared
+                            confirm_del = page.locator("mat-dialog-container").locator("button").filter(has_text="삭제").first
+                            if not confirm_del.is_visible():
+                                confirm_del = page.locator("div[role='dialog']").locator("button").filter(has_text="삭제").first
+                            if not confirm_del.is_visible():
+                                # English 'Delete' fallback
+                                confirm_del = page.locator("button").filter(has_text="Delete").first
+                            
+                            if confirm_del.is_visible():
+                                print("[Slides] Confirming deletion...")
+                                confirm_del.click()
+                            
+                            page.wait_for_timeout(2000) # wait for deletion to process
                             print("[Slides] 기존 아티팩트 삭제 완료.")
+                            
+                            # Wait for backdrop to disappear
+                            try:
+                                page.locator(".cdk-overlay-backdrop").wait_for(state="hidden", timeout=5000)
+                            except Exception:
+                                pass
                         else:
                             print("[Slides] 삭제 버튼을 찾을 수 없음. 무시하고 진행...")
                             page.keyboard.press("Escape")
