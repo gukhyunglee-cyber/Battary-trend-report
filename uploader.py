@@ -322,7 +322,7 @@ class NotebookUploader:
             finally:
                 context.close()
 
-    def download_studio_slides(self, output_path: str):
+    def download_studio_slides(self, output_path: str, force_new: bool = False):
         """Download PPT from Notebook Studio Slides"""
         if not self.auth.is_authenticated():
             raise Exception("Not authenticated. Please run auth setup first.")
@@ -374,11 +374,14 @@ class NotebookUploader:
                 print(f"[Slides] Found {artifacts_count} artifacts in Studio panel.")
                 
                 existing_slides = None
-                if artifacts_count > 0:
+                if artifacts_count > 0 and not force_new:
                     # Filter for slides if multiple artifacts exist
                     # Typically slides have a distinct icon or "Slide Materials" title above them
                     # For now we take the first/latest one
                     existing_slides = page.locator(more_btn_selector).first
+
+                if force_new:
+                    print("[Slides] force_new=True: 소스 변경이 감지되어 새 슬라이드를 강제 생성합니다.")
                 
                 if not existing_slides or not existing_slides.is_visible():
                     print("[Slides] No visible slide artifact. Attempting to locate 'Slide Materials' button...")
@@ -394,6 +397,17 @@ class NotebookUploader:
                         gen_btn.scroll_into_view_if_needed()
                         gen_btn.click()
                         print("[Slides] Clicked generate. Waiting for completion (can take 2 min)...")
+                        
+                        # Wait for a new artifact to appear at the top
+                        for _ in range(60):
+                            if page.locator(more_btn_selector).count() > artifacts_count or not force_new:
+                                break
+                            page.wait_for_timeout(2000)
+                            
+                        # If force_new was true, the count might not reliably increase if it overwrote the old one.
+                        # Wait an extra 5 seconds just to stabilize the UI.
+                        page.wait_for_timeout(5000)
+                        
                         page.locator(more_btn_selector).first.wait_for(state="visible", timeout=120000)
                         existing_slides = page.locator(more_btn_selector).first
                     else:

@@ -197,7 +197,7 @@ def run_local_mode(args):
     # 3. Weekly diff tracking
     print("\n[Diff] 전주 대비 변화 분석 중...")
     diff_tracker = WeeklyDiffTracker()
-    diff_report = diff_tracker.generate_diff_report(collector.results)
+    diff_report, has_new_articles = diff_tracker.generate_diff_report(collector.results)
     print(diff_report[:500])
 
     with open("weekly_diff_report.md", "w", encoding="utf-8") as f:
@@ -252,7 +252,7 @@ def run_local_mode(args):
             print("\n[Reporter] Studio Slides PPT 다운로드 중...")
             ppt_file = os.path.join(os.getcwd(), "battery_trend_report_ai.pptx")
             try:
-                uploader.download_studio_slides(ppt_file)
+                uploader.download_studio_slides(ppt_file, force_new=has_new_articles)
                 print(f"[PPT] AI PPT 저장 완료: {ppt_file}")
             except Exception as e:
                 print(f"[PPT] Studio Slides 실패: {e}, 로컬로 대체...")

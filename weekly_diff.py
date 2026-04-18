@@ -21,10 +21,10 @@ class WeeklyDiffTracker:
         self.snapshots_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Public API ─────────────────────────────────────────────────────
-    def generate_diff_report(self, current_articles: List[Dict]) -> str:
+    def generate_diff_report(self, current_articles: List[Dict]) -> Tuple[str, bool]:
         """
         Compare current articles with the previous snapshot.
-        Save current snapshot and return a change summary in markdown.
+        Save current snapshot and return a tuple: (markdown report, has_new_articles).
         """
         today = datetime.now().strftime("%Y-%m-%d")
         previous = self._load_latest_snapshot()
@@ -77,7 +77,7 @@ class WeeklyDiffTracker:
         prev_articles: List[Dict],
         curr_date: str,
         curr_articles: List[Dict],
-    ) -> str:
+    ) -> Tuple[str, bool]:
         """Build a markdown diff report comparing two snapshots."""
         # Create lookup sets using (site, title) as unique key
         prev_keys = {(a.get("site", ""), a.get("title", "")) for a in prev_articles}
@@ -139,9 +139,9 @@ class WeeklyDiffTracker:
                 lines.append(f"  ... 외 {len(removed_articles) - 10}건")
             lines.append("")
 
-        return "\n".join(lines)
+        return "\n".join(lines), len(new_articles) > 0
 
-    def _first_run_report(self, date: str, articles: List[Dict]) -> str:
+    def _first_run_report(self, date: str, articles: List[Dict]) -> Tuple[str, bool]:
         """Report for first-time execution (no previous snapshot)."""
         by_site = self._count_by_site(articles)
         lines = [
@@ -156,7 +156,7 @@ class WeeklyDiffTracker:
             lines.append(f"- **[{site}]** {count}건")
         lines.append("")
         lines.append("다음 실행 시 이번 주 데이터와 비교하여 변화를 분석합니다.")
-        return "\n".join(lines)
+        return "\n".join(lines), True
 
     @staticmethod
     def _count_by_site(articles: List[Dict]) -> Dict[str, int]:
