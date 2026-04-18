@@ -6,17 +6,100 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Search Settings
-SEARCH_KEYWORDS_KR = ["2차전지 최신 이슈", "배터리 업계 동향", "2차전지 전시회 일정", "배터리 박람회 참가 업체"]
-SEARCH_KEYWORDS_EN = ["Secondary Battery Trends", "Battery Industry News", "Battery Exhibitions 2024 2025"]
-
-# YouTube Settings
-YOUTUBE_KEYWORDS = ["2차전지 이슈", "배터리 기술 동향"]
+# ── 10개 타겟 사이트 (배터리 제조공정·설비 특화) ──────────────────────────
+TARGET_SITES = [
+    # ── 업계 미디어·뉴스 (6곳) ──
+    {
+        "name": "Munro & Associates",
+        "url": "https://www.leandesign.com",
+        "rss_url": None,
+        "category": "업계 미디어",
+        "description": "배터리 팝 해체분석 전문. Lean Design 방식론으로 EV 배터리 제조 공정·원가·설계 최적화 인사이트 제공",
+    },
+    {
+        "name": "Charged EVs",
+        "url": "https://chargedevs.com",
+        "rss_url": "https://chargedevs.com/feed/",
+        "category": "업계 미디어",
+        "description": "설비업체 CEO 인터뷰, 드라이 전극 코팅 시스템 납품 현황, 장비 스펙 단독 취재",
+    },
+    {
+        "name": "Electrive",
+        "url": "https://www.electrive.com",
+        "rss_url": "https://www.electrive.com/feed/",
+        "category": "업계 미디어",
+        "description": "유럽발 Cell-to-Pack 공법, 독일·유럽 배터리 R&D 프로젝트 동향",
+    },
+    {
+        "name": "Benchmark Minerals",
+        "url": "https://source.benchmarkminerals.com",
+        "rss_url": None,
+        "category": "업계 미디어",
+        "description": "드라이 전극 공법 NMP 솔벤트 제거: LG에너지솔루션·Tesla 경쟁 구도, 비용·기술 분석",
+    },
+    {
+        "name": "Energy Storage News",
+        "url": "https://www.energy-storage.news",
+        "rss_url": "https://www.energy-storage.news/feed/",
+        "category": "업계 미디어",
+        "description": "BESS용 배터리 팩 제조 공정, 포메이션·에이징 설비 발주 동향 특화",
+    },
+    {
+        "name": "PV Tech",
+        "url": "https://www.pv-tech.org",
+        "rss_url": "https://www.pv-tech.org/feed/",
+        "category": "업계 미디어",
+        "description": "ESS용 셀 포맷(46파이 포함) 제조 투자·공법 전환 뉴스",
+    },
+    # ── 설비업체 공식 뉴스 (2곳) ──
+    {
+        "name": "Dürr AG",
+        "url": "https://www.durr.com/en/media",
+        "rss_url": None,
+        "category": "설비업체",
+        "description": "X.Cellify DC 드라이코팅 시스템, 솔벤트프리 전극 생산 기술 제1 출처",
+    },
+    {
+        "name": "디일렉 (TheElec)",
+        "url": "https://thelec.kr",
+        "rss_url": "https://thelec.kr/rss/allArticle.xml",
+        "category": "대한민국 미디어",
+        "description": "국내외 배터리 장비 및 소재 업체 공급망 소식에 가장 정통한 IT 전문 매체",
+    },
+    # ── 리서치·기관 (2곳) ──
+    {
+        "name": "피엔티 (PNT)",
+        "url": "https://www.epnt.co.kr",
+        "rss_url": None,
+        "category": "설비업체",
+        "description": "국내 최고 수준의 롤투롤(Roll-to-Roll) 기술 기반 이차전지 전극 공정 장비 제조사",
+    },
+    {
+        "name": "씨아이에스 (CIS)",
+        "url": "https://www.cisro.co.kr",
+        "rss_url": None,
+        "category": "설비업체",
+        "description": "이차전지 전극 공정(Coater, Calender, Slitter 등) 생산 설비 및 고체전지 장비 제조사",
+    },
+    {
+        "name": "원준 (ONEJOON)",
+        "url": "http://www.onejoon.co.kr",
+        "rss_url": None,
+        "category": "설비업체",
+        "description": "이차전지 양극재 및 음극재 생산용 열처리 장비(소성로) 설계 및 제조 전문기업",
+    },
+    {
+        "name": "IDTechEx",
+        "url": "https://www.idtechex.com/research",
+        "rss_url": None,
+        "category": "리서치",
+        "description": "고체전지·드라이코팅·46파이 셀 포맷 차세대 제조 기술 리포트",
+    },
+]
 
 # NotebookLM Settings
 NOTEBOOK_NAME = "Battery Trend Report"
-# Notebook ID will be determined dynamically or set here after creation
-NOTEBOOK_ID = "18b97295-4392-47b3-a23d-a1dda255147a" 
+NOTEBOOK_ID = "18b97295-4392-47b3-a23d-a1dda255147a"
 
 # Email Settings
 EMAIL_SENDER = os.getenv("EMAIL_SENDER", "gukhyungLee@gmail.com")
@@ -26,3 +109,10 @@ EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", "emittion@naver.com, gh2143.lee@s
 # Gemini API Settings
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
+# LM Studio Settings
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "sk-lm-wPPVbFqK:fivACRL9zYpyZpDnCd0E")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "google/gemma-4-e4b")
+
+# Default AI Provider ("gemini" or "lm_studio")
+AI_PROVIDER = os.getenv("AI_PROVIDER", "lm_studio")
