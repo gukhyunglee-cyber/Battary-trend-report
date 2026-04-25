@@ -95,6 +95,20 @@ TARGET_SITES = [
         "category": "리서치",
         "description": "고체전지·드라이코팅·46파이 셀 포맷 차세대 제조 기술 리포트",
     },
+    {
+        "name": "CNEVPost",
+        "url": "https://cnevpost.com/",
+        "rss_url": "https://cnevpost.com/feed/",
+        "category": "업계 미디어 / 중국",
+        "description": "CATL, BYD 등 중국 배터리 제조사 및 윈도우(Lead Intelligent) 등 중국 핵심 장비 업체 동향",
+    },
+    {
+        "name": "Batteries News",
+        "url": "https://batteriesnews.com/",
+        "rss_url": "https://batteriesnews.com/feed/",
+        "category": "업계 미디어 / 글로벌",
+        "description": "배터리 시장 최신 전문 뉴스와 주요 배터리 기기 및 장비 전시회/이벤트 정보",
+    },
 ]
 
 # NotebookLM Settings
@@ -104,7 +118,7 @@ NOTEBOOK_ID = "18b97295-4392-47b3-a23d-a1dda255147a"
 # Email Settings
 EMAIL_SENDER = os.getenv("EMAIL_SENDER", "gukhyungLee@gmail.com")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "bfxg jypj igku gcos")
-EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com, junghyuk.kim@samsung.com")
+EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com, junghyuk.kim@samsung.com, zlzlznzn.yoo@samsung.com")
 
 # Gemini API Settings
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
