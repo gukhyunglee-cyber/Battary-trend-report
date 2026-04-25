@@ -57,7 +57,7 @@ def run_cloud_mode():
     # 2. Weekly diff tracking
     print("\n[Step 2/5] 전주 대비 변화 분석...")
     diff_tracker = WeeklyDiffTracker()
-    diff_report = diff_tracker.generate_diff_report(collector.results)
+    diff_report, has_new_articles = diff_tracker.generate_diff_report(collector.results)
     print(diff_report[:500])
 
     # Save diff report
@@ -238,7 +238,11 @@ def run_local_mode(args):
 
         prompt = (
             "새로 추가된 자료를 바탕으로 2차전지 제조공정·설비 업계의 최근 이슈 4가지를 선정하여 심층 분석 리포트를 작성해줘. "
-            "특히 배터리 제조회사별로 제조공정을 어떻게 바꿔 나가고 있는지, 어떤 신규 공법 및 새로운 설비가 도입되고 있는지를 중점적으로 분석해줘. "
+            "반드시 다음 4가지를 집중적으로 파악해서 반영해줘: "
+            "1) 배터리 제조공정 제조사별 비교 분석, "
+            "2) 신규 제조 설비 및 새로운 공법 동향, "
+            "3) 국내/중국 설비업체 동향 집중 조명, "
+            "4) 배터리 관련 전시회 전시 항목과 신기술 트렌드. "
             "각 이슈에 대해 '현황', '주요 원인(배경)', '신규 공법/설비 파급효과', '미래 전망'을 포함하여 자세히 서술할 것. "
             "매거진 특집 기사 스타일로 서론과 에디터 노트도 포함해."
         )
@@ -249,32 +253,33 @@ def run_local_mode(args):
                 f.write(report_text)
 
             # PPT via Studio slides
-            print("\n[Reporter] Studio Slides PPT 다운로드 중...")
+            print("\n[Reporter] Studio Slides 새로 생성 및 다운로드 중...")
             ppt_file = os.path.join(os.getcwd(), "battery_trend_report_ai.pptx")
             try:
-                uploader.download_studio_slides(ppt_file, force_new=has_new_articles)
-                print(f"[PPT] AI PPT 저장 완료: {ppt_file}")
+                uploader.download_studio_slides(ppt_file, force_new=True)
+                print(f"[PPT] 스튜디오에서 새롭게 생성된 PPT 저장 완료: {ppt_file}")
             except Exception as e:
-                print(f"[PPT] Studio Slides 실패: {e}, 로컬로 대체...")
+                print(f"[PPT] Studio Slides 생성 실패: {e}, 로컬로 대체합니다...")
                 slide_prompt = (
-            "앞서 작성한 4가지 이슈를 바탕으로 PPT 슬라이드 내용을 작성해줘. "
-            "각 이슈마다 슬라이드 1개씩 할당. "
-            "작성 시 배터리 제조회사별 제조공정의 변화 내용, 신규 공법 및 도입 설비를 위주로 정리해줘. "
-            "형식:\nTitle: [이슈 제목]\n- [상세 설명 1]\n- [상세 설명 2]..."
-        )
+                    "앞서 작성한 4가지 이슈를 바탕으로 PPT 슬라이드 내용을 작성해줘. "
+                    "각 이슈마다 슬라이드 1개씩 할당. "
+                    "내용 작성 시 반드시 다음 항목들을 위주로 요구해줘: "
+                    "배터리 제조공정 제조사별 비교 분석, 신규 제조 설비 및 새로운 공법 동향, 국내/중국 설비업체 동향 집중 조명, 배터리 관련 전시회 전시 항목과 신기술 트렌드. "
+                    "형식:\nTitle: [이슈 제목]\n- [상세 설명 1]\n- [상세 설명 2]..."
+                )
                 slides_data = reporter.generate_slide_content(slide_prompt)
                 if slides_data:
                     from ppt_generator import PPTGenerator
                     ppt_gen = PPTGenerator()
                     ppt_file = ppt_gen.create_presentation(slides_data, "battery_trend_report_local.pptx")
+                    print(f"[PPT] 로컬 PPT 저장 완료: {ppt_file}")
 
             # Email
             print("\n[Reporter] 이메일 본문 생성 중...")
             summary_prompt = (
                 "앞서 작성한 리포트 내용을 바탕으로 이메일 본문을 작성해줘. "
-                "정중한 인사말, 핵심 이슈 4가지 요약 (관련 원본 소스 링크 URL 포함), "
-                "전주 대비 주요 변화 사항 요약, "
-                "업계 시사점, 맺음말을 포함할 것."
+                "정중한 인사말을 시작으로 핵심 이슈 전부를 요약 (관련 원본 소스 링크 URL 포함) 정리하고, "
+                "전주 대비 새로운 소식도 추가하고 맺음말로 결론지을 것."
             )
             email_body = reporter.generate_email_summary(summary_prompt) or "리포트가 첨부되었습니다."
 
