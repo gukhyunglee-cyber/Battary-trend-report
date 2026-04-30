@@ -64,20 +64,27 @@ st.markdown("""
         padding-bottom: 2rem !important;
         max-width: 100% !important;
     }
-    /* 리스트 항목(Popover) 좌측 정렬 */
+    /* 리스트 항목(Popover) 좌측 정렬 강제 */
     div[data-testid="stPopover"] > button {
         width: 100% !important;
         text-align: left !important;
         justify-content: flex-start !important;
-        padding: 8px 12px !important;
+        padding: 10px 15px !important;
         border: none !important;
         border-radius: 4px !important;
         border-bottom: 0.5px solid #444 !important;
         background-color: transparent !important;
     }
-    div[data-testid="stPopover"] > button div {
+    /* 버튼 내부의 모든 텍스트 요소를 왼쪽으로 밀착 */
+    div[data-testid="stPopover"] > button * {
         text-align: left !important;
-        width: 100%;
+        justify-content: flex-start !important;
+        margin-left: 0 !important;
+    }
+    /* 텍스트 겹침 방지 및 폰트 설정 */
+    div[data-testid="stPopover"] span {
+        font-size: 14px !important;
+        text-align: left !important;
     }
     /* 탭 간격 최적화 */
     .stTabs [data-baseweb="tab-list"] {
