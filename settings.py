@@ -2,12 +2,25 @@
 Configuration for Battery Trend Reporter
 """
 import os
+import json
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Load dynamic config if exists
+PROJECT_ROOT = Path(__file__).parent
+CONFIG_PATH = PROJECT_ROOT / "config.json"
+dynamic_config = {}
+if CONFIG_PATH.exists():
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            dynamic_config = json.load(f)
+    except Exception as e:
+        print(f"Error loading config.json: {e}")
+
 # ── 10개 타겟 사이트 (배터리 제조공정·설비 특화) ──────────────────────────
-TARGET_SITES = [
+DEFAULT_SITES = [
     # ── 업계 미디어·뉴스 (6곳) ──
     {
         "name": "Munro & Associates",
@@ -111,22 +124,25 @@ TARGET_SITES = [
     },
 ]
 
+# Use dynamic config if available, otherwise use default
+TARGET_SITES = dynamic_config.get("TARGET_SITES", DEFAULT_SITES)
+
 # NotebookLM Settings
-NOTEBOOK_NAME = "Battery Trend Report"
-NOTEBOOK_ID = "18b97295-4392-47b3-a23d-a1dda255147a"
+NOTEBOOK_NAME = dynamic_config.get("NOTEBOOK_NAME", "Battery Trend Report")
+NOTEBOOK_ID = dynamic_config.get("NOTEBOOK_ID", "18b97295-4392-47b3-a23d-a1dda255147a")
 
 # Email Settings
-EMAIL_SENDER = os.getenv("EMAIL_SENDER", "gukhyungLee@gmail.com")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "bfxg jypj igku gcos")
-EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com, junghyuk.kim@samsung.com, zlzlznzn.yoo@samsung.com")
+EMAIL_SENDER = os.getenv("EMAIL_SENDER", dynamic_config.get("EMAIL_SENDER", "gukhyungLee@gmail.com"))
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", dynamic_config.get("EMAIL_PASSWORD", "bfxg jypj igku gcos"))
+EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", dynamic_config.get("EMAIL_RECIPIENT", "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com, junghyuk.kim@samsung.com, zlzlznzn.yoo@samsung.com"))
 
 # Gemini API Settings
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", dynamic_config.get("GEMINI_API_KEY", ""))
 
 # LM Studio Settings
-LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
-LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "sk-lm-wPPVbFqK:fivACRL9zYpyZpDnCd0E")
-LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "google/gemma-4-e4b")
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", dynamic_config.get("LM_STUDIO_BASE_URL", "http://localhost:1234/v1"))
+LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", dynamic_config.get("LM_STUDIO_API_KEY", "sk-lm-wPPVbFqK:fivACRL9zYpyZpDnCd0E"))
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", dynamic_config.get("LM_STUDIO_MODEL", "google/gemma-4-e4b"))
 
 # Default AI Provider ("gemini" or "lm_studio")
-AI_PROVIDER = os.getenv("AI_PROVIDER", "lm_studio")
+AI_PROVIDER = os.getenv("AI_PROVIDER", dynamic_config.get("AI_PROVIDER", "lm_studio"))

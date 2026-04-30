@@ -6,7 +6,8 @@ via RSS feeds and HTML scraping (no DuckDuckGo dependency).
 import logging
 import time
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import email.utils
 from typing import List, Dict, Optional
 from urllib.parse import urljoin
 
@@ -134,12 +135,16 @@ class TrendCollector:
                     snippet = BeautifulSoup(snippet, "html.parser").get_text(strip=True)
 
                 if title and link:
+                    date_str = (date or "").strip()
+                    if not self._is_recent_enough(date_str):
+                        continue
+                        
                     articles.append({
                         "site": site["name"],
                         "category": site["category"],
                         "title": title.strip(),
                         "url": link.strip(),
-                        "date": (date or "").strip(),
+                        "date": date_str,
                         "snippet": snippet[:300],
                     })
         except ET.ParseError as e:
@@ -241,6 +246,31 @@ class TrendCollector:
         if el is not None:
             return el.get(attr)
         return None
+
+    @staticmethod
+    def _is_recent_enough(date_str: str) -> bool:
+        """한 달(30일)이 지난 오래된 기사는 수집에서 제외"""
+        if not date_str:
+            return True
+            
+        try:
+            # Parse RFC 822 format (common in RSS)
+            dt = email.utils.parsedate_to_datetime(date_str)
+            now = datetime.now(dt.tzinfo or timezone.utc)
+            if now - dt > timedelta(days=30):
+                return False
+        except Exception:
+            # Parse ISO 8601 format (e.g. 2026-04-18T10:00:00Z)
+            try:
+                clean_date = date_str.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(clean_date)
+                now = datetime.now(dt.tzinfo or timezone.utc)
+                if now - dt > timedelta(days=30):
+                    return False
+            except Exception:
+                # 파싱 불가한 날짜형식은 뉴스라는 특성상 최근으로 간주
+                pass
+        return True
 
 
 if __name__ == "__main__":

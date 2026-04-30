@@ -8,7 +8,8 @@ from pathlib import Path
 # Paths
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "user_data"
-BROWSER_STATE_DIR = DATA_DIR / "browser_state"
+# Use a safe ASCII path for browser state to avoid patchright internal crash with '바탕 화면'
+BROWSER_STATE_DIR = Path("C:\\.battery_reporter_browser_state")
 BROWSER_PROFILE_DIR = BROWSER_STATE_DIR / "browser_profile"
 STATE_FILE = BROWSER_STATE_DIR / "state.json"
 AUTH_INFO_FILE = DATA_DIR / "auth_info.json"
