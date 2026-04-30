@@ -80,6 +80,22 @@ if "delete_confirm" not in st.session_state:
 
 conf = st.session_state.config
 
+# Force horizontal layout on mobile via CSS
+st.markdown("""
+    <style>
+    [data-testid="column"] {
+        width: unset !important;
+        flex: 1 1 0% !important;
+        min-width: unset !important;
+    }
+    /* 특정 버튼 스타일 조정 */
+    .stButton>button {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Mobile-friendly Tabs
 tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Target Sites", "⚙️ Settings"])
 
