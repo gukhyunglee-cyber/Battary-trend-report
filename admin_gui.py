@@ -67,74 +67,124 @@ def save_config_to_github(new_config):
         return False
 
 # --- UI Layout ---
-st.title("⚡ Battery Trend Reporter 관리자")
-st.markdown("모바일에서 간편하게 수신인과 수집 사이트를 관리하세요.")
+st.title("⚡ Battery Trend Admin Center")
+st.markdown("전용 관리자 패널에서 리포트 설정을 실시간으로 제어하세요.")
 
 # Load initial data
 if "config" not in st.session_state:
-    with st.spinner("깃허브에서 설정을 불러오는 중..."):
+    with st.spinner("깃허브에서 최신 설정을 동기화 중..."):
         st.session_state.config = load_config_from_github()
+
+if "delete_confirm" not in st.session_state:
+    st.session_state.delete_confirm = None
 
 conf = st.session_state.config
 
-# 1. Email Recipients Section
+# --- 1. Email Recipients Section ---
 st.header("📧 수신인 관리")
-current_recipients = conf.get("EMAIL_RECIPIENT", "")
-new_recipients = st.text_area(
-    "수신인 이메일 (쉼표 또는 줄바꿈으로 구분)",
-    value=current_recipients.replace(", ", "\n"),
-    height=150,
-    help="리포트를 받을 사람들의 이메일을 입력하세요."
-)
-# Format back to comma-separated
-formatted_recipients = ", ".join([r.strip() for r in new_recipients.split() if "@" in r])
 
-# 2. Target Sites Section
-st.header("🔗 수집 사이트 목록")
-sites = conf.get("TARGET_SITES", [])
-if not sites:
-    st.info("수집 사이트 목록이 비어있습니다. 기본값이 사용됩니다.")
+# Current Recipients List
+recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
 
-# Display as table for easy view
-if sites:
-    df = pd.DataFrame(sites)[["name", "url", "category"]]
-    st.table(df)
+for i, email in enumerate(recipients):
+    cols = st.columns([4, 1])
+    cols[0].write(f"**{i+1}.** {email}")
+    if cols[1].button("삭제", key=f"del_email_{i}"):
+        st.session_state.delete_confirm = ("email", i, email)
 
-# Add/Edit Sites (Simplified for mobile)
-with st.expander("사이트 추가/수정"):
-    st.info("현재는 JSON 직접 편집 기능을 제공합니다. (추후 UI 개선 가능)")
-    sites_json = st.text_area("사이트 목록 (JSON)", value=json.dumps(sites, indent=2, ensure_ascii=False), height=300)
-    try:
-        updated_sites = json.loads(sites_json)
-    except:
-        st.error("JSON 형식이 올바르지 않습니다.")
-        updated_sites = sites
+# Email Delete Confirmation
+if st.session_state.delete_confirm and st.session_state.delete_confirm[0] == "email":
+    type, idx, val = st.session_state.delete_confirm
+    st.warning(f"정말 '{val}' 수신인을 삭제하시겠습니까?")
+    c1, c2 = st.columns(2)
+    if c1.button("확인(삭제)", type="primary"):
+        recipients.pop(idx)
+        conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
+        st.session_state.delete_confirm = None
+        st.rerun()
+    if c2.button("취소"):
+        st.session_state.delete_confirm = None
+        st.rerun()
 
-# 3. API Keys Section
-st.header("🔑 API 설정")
-gemini_key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
-
-# --- Save Button ---
-st.divider()
-if st.button("💾 설정 저장하기 (GitHub에 반영)", type="primary"):
-    new_data = {
-        "EMAIL_RECIPIENT": formatted_recipients,
-        "TARGET_SITES": updated_sites,
-        "GEMINI_API_KEY": gemini_key,
-        "AI_PROVIDER": "gemini",
-        "NOTEBOOK_NAME": conf.get("NOTEBOOK_NAME", "Battery Trend Report"),
-        "NOTEBOOK_ID": conf.get("NOTEBOOK_ID", "18b97295-4392-47b3-a23d-a1dda255147a")
-    }
-    
-    with st.spinner("깃허브에 저장 중..."):
-        if save_config_to_github(new_data):
-            st.success("✅ 설정이 저장되었습니다! 다음 리포트 실행 시 반영됩니다.")
-            st.session_state.config = new_data
+# Add Email Popover
+with st.popover("➕ 수신인 추가"):
+    new_email = st.text_input("새 이메일 주소")
+    if st.button("등록하기"):
+        if "@" in new_email:
+            recipients.append(new_email.strip())
+            conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
+            st.success("추가되었습니다!")
+            st.rerun()
         else:
-            st.error("❌ 저장에 실패했습니다. 깃허브 토큰 설정을 확인하세요.")
+            st.error("유효한 이메일 형식이 아닙니다.")
 
-# --- Workflow Trigger ---
-st.sidebar.header("🚀 작업 실행")
-if st.sidebar.button("지금 즉시 리포트 생성"):
-    st.sidebar.warning("이 기능은 GitHub Actions API 연동이 필요합니다. (준비 중)")
-    # TODO: Add workflow_dispatch trigger logic
+st.divider()
+
+# --- 2. Target Sites Section ---
+st.header("🔗 수집 사이트 관리")
+
+sites = conf.get("TARGET_SITES", [])
+
+# Display sites with delete buttons
+for i, site in enumerate(sites):
+    with st.container(border=True):
+        cols = st.columns([3, 1, 1])
+        cols[0].write(f"**{site['name']}**")
+        cols[0].caption(site['url'])
+        cols[1].info(site.get('category', '미분류'))
+        if cols[2].button("삭제", key=f"del_site_{i}"):
+            st.session_state.delete_confirm = ("site", i, site['name'])
+
+# Site Delete Confirmation
+if st.session_state.delete_confirm and st.session_state.delete_confirm[0] == "site":
+    type, idx, val = st.session_state.delete_confirm
+    st.warning(f"정말 '{val}' 사이트를 수집 대상에서 삭제하시겠습니까?")
+    c1, c2 = st.columns(2)
+    if c1.button("확인(삭제)", type="primary", key="confirm_site_del"):
+        sites.pop(idx)
+        conf["TARGET_SITES"] = sites
+        st.session_state.delete_confirm = None
+        st.rerun()
+    if c2.button("취소", key="cancel_site_del"):
+        st.session_state.delete_confirm = None
+        st.rerun()
+
+# Add Site Popover
+with st.popover("➕ 새 수집 사이트 추가"):
+    with st.form("add_site_form"):
+        s_name = st.text_input("사이트 이름 (예: 테슬라 뉴스)")
+        s_url = st.text_input("URL (https://...)")
+        s_cat = st.selectbox("카테고리", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
+        
+        if st.form_submit_button("사이트 등록"):
+            if s_name and s_url.startswith("http"):
+                new_site = {"name": s_name, "url": s_url, "category": s_cat}
+                sites.append(new_site)
+                conf["TARGET_SITES"] = sites
+                st.success("사이트가 목록에 추가되었습니다!")
+                st.rerun()
+            else:
+                st.error("이름과 올바른 URL을 입력하세요.")
+
+# --- Save & API Section ---
+st.divider()
+st.header("⚙️ 최종 설정 및 저장")
+
+with st.expander("🔑 API 키 관리"):
+    gemini_key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
+    conf["GEMINI_API_KEY"] = gemini_key
+
+if st.button("💾 모든 변경 사항 GitHub에 저장", type="primary", use_container_width=True):
+    with st.spinner("깃허브 서버와 동기화 중..."):
+        if save_config_to_github(conf):
+            st.success("✅ 모든 변경 사항이 깃허브에 영구 저장되었습니다!")
+        else:
+            st.error("❌ 저장 실패. 설정을 확인해 주세요.")
+
+# Sidebar status
+st.sidebar.title("📊 시스템 상태")
+st.sidebar.info(f"수신인: {len(recipients)}명")
+st.sidebar.info(f"수집 사이트: {len(sites)}곳")
+if st.sidebar.button("새로고침(동기화)"):
+    del st.session_state.config
+    st.rerun()
