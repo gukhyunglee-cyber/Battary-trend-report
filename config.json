@@ -1,0 +1,34 @@
+{
+  "EMAIL_RECIPIENT": "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com, junghyuk.kim@samsung.com, zlzlznzn.yoo@samsung.com",
+  "TARGET_SITES": [
+    {
+      "name": "Munro & Associates",
+      "url": "https://www.leandesign.com",
+      "category": "업계 미디어"
+    },
+    {
+      "name": "Charged EVs",
+      "url": "https://chargedevs.com",
+      "category": "업계 미디어"
+    },
+    {
+      "name": "Electrive",
+      "url": "https://www.electrive.com",
+      "category": "업계 미디어"
+    },
+    {
+      "name": "TheElec",
+      "url": "https://thelec.kr",
+      "category": "대한민국 미디어"
+    },
+    {
+      "name": "CNEVPost",
+      "url": "https://cnevpost.com/",
+      "category": "중국 동향"
+    }
+  ],
+  "GEMINI_API_KEY": "",
+  "AI_PROVIDER": "gemini",
+  "NOTEBOOK_NAME": "Battery Trend Report",
+  "NOTEBOOK_ID": "18b97295-4392-47b3-a23d-a1dda255147a"
+}
