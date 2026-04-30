@@ -80,39 +80,35 @@ if "delete_confirm" not in st.session_state:
 
 conf = st.session_state.config
 
-# Force horizontal layout on mobile via aggressive CSS
+# Force ultra-compact layout on mobile via CSS
 st.markdown("""
     <style>
-    /* 전체 앱 너비 최적화 */
+    /* 전체 앱 여백 최소화 */
     .block-container {
-        padding: 1rem !important;
+        padding: 0.5rem !important;
         max-width: 100% !important;
     }
-    /* 컬럼이 모바일에서 절대 줄바꿈되지 않도록 강제 */
-    div[data-testid="column"]:nth-of-type(1) {
-        flex: 85% !important;
-        min-width: 85% !important;
-    }
-    div[data-testid="column"]:nth-of-type(2) {
-        flex: 15% !important;
-        min-width: 15% !important;
-        display: flex;
-        justify-content: flex-end;
-    }
-    /* 버튼 스타일 고정 */
-    .stButton > button {
-        width: 35px !important;
-        height: 35px !important;
-        padding: 0px !important;
-        font-size: 18px !important;
-    }
-    /* 텍스트 스타일 */
-    .small-font {
+    /* 리스트 버튼 스타일: 배경/테두리 제거 및 간격 최소화 */
+    div.stButton > button {
+        width: 100% !important;
+        text-align: left !important;
+        padding: 2px 5px !important;
+        margin: 0px !important;
+        border: none !important;
+        border-radius: 0px !important;
+        border-bottom: 0.5px solid #444 !important; /* 구분선 */
+        background-color: transparent !important;
+        color: white !important;
         font-size: 14px !important;
-        line-height: 35px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        height: auto !important;
+        min-height: 32px !important;
+    }
+    div.stButton > button:hover {
+        background-color: #333 !important;
+    }
+    /* 탭 간격 조정 */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -126,12 +122,8 @@ with tab1:
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
     for i, email in enumerate(recipients):
-        with st.container():
-            cols = st.columns([10, 1])
-            cols[0].markdown(f'<div class="small-font">{email}</div>', unsafe_allow_html=True)
-            if cols[1].button("🗑️", key=f"del_email_{i}"):
-                st.session_state.delete_confirm = ("email", i, email)
-        st.divider()
+        if st.button(f"👤 {email}", key=f"rec_btn_{i}"):
+            st.session_state.delete_confirm = ("email", i, email)
 
     st.markdown("---")
     with st.popover("➕ Add New Recipient", use_container_width=True):
@@ -142,8 +134,6 @@ with tab1:
                 conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
                 st.success("Added!")
                 st.rerun()
-            else:
-                st.error("Invalid Email")
 
 # --- Tab 2: Target Sites ---
 with tab2:
@@ -151,22 +141,17 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
-        with st.container():
-            cols = st.columns([10, 1])
-            with cols[0]:
-                st.markdown(f'<div class="small-font"><b>{site["name"]}</b> | {site["url"]}</div>', unsafe_allow_html=True)
-            if cols[1].button("🗑️", key=f"del_site_{i}"):
-                st.session_state.delete_confirm = ("site", i, site['name'])
-        st.divider()
+        if st.button(f"🌐 {site['name']} ({site['url']})", key=f"site_btn_{i}"):
+            st.session_state.delete_confirm = ("site", i, site['name'])
 
     st.markdown("---")
     with st.popover("➕ Add New Site", use_container_width=True):
-        with st.form("add_site_form_mobile"):
+        with st.form("add_site_form_v3"):
             s_name = st.text_input("Site Name")
-            s_url = st.text_input("URL (https://...)")
+            s_url = st.text_input("URL")
             s_cat = st.selectbox("Category", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
             if st.form_submit_button("Register Site", use_container_width=True):
-                if s_name and s_url.startswith("http"):
+                if s_name and s_url:
                     sites.append({"name": s_name, "url": s_url, "category": s_cat})
                     conf["TARGET_SITES"] = sites
                     st.success("Registered!")
