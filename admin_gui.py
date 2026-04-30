@@ -90,17 +90,22 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
     }
-    /* 각 컬럼의 너비가 좁아져도 유지되도록 설정 */
-    div[data-testid="column"] {
+    /* 각 컬럼의 너비 세부 조정 */
+    div[data-testid="column"]:nth-of-type(1) {
+        flex: 10 1 0% !important;
         min-width: 0px !important;
-        flex: 1 1 auto !important;
     }
-    /* 이메일 주소 텍스트 크기 미세 조정 */
+    div[data-testid="column"]:nth-of-type(2) {
+        flex: 0 0 50px !important; /* 버튼 공간 50px 고정 */
+        min-width: 50px !important;
+    }
+    /* 이메일 주소 텍스트 크기 및 생략 처리(...) */
     .small-font {
         font-size: 14px !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: block;
     }
     </style>
     """, unsafe_allow_html=True)
