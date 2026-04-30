@@ -88,27 +88,16 @@ st.markdown("""
         padding: 0.5rem !important;
         max-width: 100% !important;
     }
-    /* 팝업 버튼 스타일: 리스트 항목처럼 보이게 함 */
+    /* 팝업 버튼 내부 텍스트만 좌측 정렬 */
     div[data-testid="stPopover"] > button {
-        width: 100% !important;
         text-align: left !important;
-        padding: 2px 5px !important;
-        margin: 0px !important;
-        border: none !important;
-        border-radius: 0px !important;
-        border-bottom: 0.5px solid #444 !important;
-        background-color: transparent !important;
-        color: white !important;
-        font-size: 14px !important;
-        height: auto !important;
-        min-height: 35px !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        padding-left: 10px !important;
     }
-    div[data-testid="stPopover"] > button:hover {
-        background-color: #333 !important;
-    }
-    /* 팝업 내부 스타일 */
-    div[data-testid="stPopoverContent"] {
-        padding: 10px !important;
+    div[data-testid="stPopover"] p {
+        text-align: left !important;
+        margin: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
