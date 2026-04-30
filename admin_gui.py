@@ -64,27 +64,28 @@ st.markdown("""
         padding-bottom: 2rem !important;
         max-width: 100% !important;
     }
-    /* 리스트 항목(Popover) 좌측 정렬 강제 */
-    div[data-testid="stPopover"] > button {
-        width: 100% !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-        padding: 10px 15px !important;
-        border: none !important;
-        border-radius: 4px !important;
-        border-bottom: 0.5px solid #444 !important;
-        background-color: transparent !important;
+    /* 컬럼 컨테이너 줄바꿈 해제 및 좌우 정렬 */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
     }
-    /* 버튼 내부의 모든 텍스트 요소를 왼쪽으로 밀착 */
-    div[data-testid="stPopover"] > button * {
+    div[data-testid="column"]:nth-of-type(1) {
+        flex: 1 1 auto !important;
+        min-width: 0px !important;
         text-align: left !important;
-        justify-content: flex-start !important;
-        margin-left: 0 !important;
     }
-    /* 텍스트 겹침 방지 및 폰트 설정 */
-    div[data-testid="stPopover"] span {
-        font-size: 14px !important;
-        text-align: left !important;
+    div[data-testid="column"]:nth-of-type(2) {
+        flex: 0 0 45px !important;
+        min-width: 45px !important;
+        text-align: right !important;
+    }
+    /* 버튼 스타일 */
+    .stButton > button {
+        width: 35px !important;
+        height: 35px !important;
+        padding: 0px !important;
     }
     /* 탭 간격 최적화 */
     .stTabs [data-baseweb="tab-list"] {
@@ -108,23 +109,21 @@ with tab1:
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
     for i, email in enumerate(recipients):
-        with st.popover(f"👤 {email}", use_container_width=True):
-            st.write(f"**{email}** 수신인을 삭제하시겠습니까?")
-            if st.button("❌ 삭제 확정", key=f"del_rec_v2_{i}", type="primary", use_container_width=True):
-                recipients.pop(i)
-                conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
-                st.session_state.config = conf
-                st.rerun()
+        cols = st.columns([10, 1])
+        cols[0].markdown(f'<div style="text-align:left; font-size:14px; padding:5px 0;">{email}</div>', unsafe_allow_html=True)
+        if cols[1].button("🗑️", key=f"del_rec_btn_{i}"):
+            st.session_state.delete_confirm = ("email", i, email)
+        st.divider()
 
     st.markdown("---")
     with st.popover("➕ Add New Recipient", use_container_width=True):
-        new_email = st.text_input("Enter Email", key="add_email_input")
+        new_email = st.text_input("Enter Email")
         if st.button("Add Now", use_container_width=True, type="primary"):
             if "@" in new_email:
                 recipients.append(new_email.strip())
                 conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
                 st.session_state.config = conf
-                st.success("Added locally!")
+                st.success("Added!")
                 st.rerun()
 
 # --- Tab 2: Target Sites ---
@@ -133,13 +132,13 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
-        with st.popover(f"🌐 {site['name']}", use_container_width=True):
-            st.write(f"URL: {site['url']}")
-            if st.button("❌ 삭제 확정", key=f"del_site_v2_{i}", type="primary", use_container_width=True):
-                sites.pop(i)
-                conf["TARGET_SITES"] = sites
-                st.session_state.config = conf
-                st.rerun()
+        cols = st.columns([10, 1])
+        with cols[0]:
+            st.markdown(f'<div style="text-align:left; font-size:14px;"><b>{site["name"]}</b></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="text-align:left; font-size:11px; color:#888;">{site["url"]}</div>', unsafe_allow_html=True)
+        if cols[1].button("🗑️", key=f"del_site_btn_{i}"):
+            st.session_state.delete_confirm = ("site", i, site['name'])
+        st.divider()
 
     st.markdown("---")
     with st.popover("➕ Add New Site", use_container_width=True):
