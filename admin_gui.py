@@ -83,25 +83,36 @@ conf = st.session_state.config
 # Force horizontal layout on mobile via aggressive CSS
 st.markdown("""
     <style>
-    /* 컬럼 컨테이너의 줄바꿈 강제 해제 */
+    /* 전체 앱 너비 및 오버플로 제어 */
+    .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    /* 컬럼 컨테이너 너비 고정 및 줄바꿈 해제 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
+        width: 100% !important;
+        overflow: hidden !important;
     }
     /* 각 컬럼의 너비 세부 조정 */
     div[data-testid="column"]:nth-of-type(1) {
-        flex: 10 1 0% !important;
+        flex: 1 1 auto !important;
         min-width: 0px !important;
+        width: calc(100% - 50px) !important;
     }
     div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 50px !important; /* 버튼 공간 50px 고정 */
-        min-width: 50px !important;
+        flex: 0 0 45px !important; 
+        min-width: 45px !important;
+        text-align: right;
     }
-    /* 이메일 주소 텍스트 크기 및 생략 처리(...) */
+    /* 텍스트 생략 처리 및 폰트 최적화 */
     .small-font {
-        font-size: 14px !important;
+        font-size: 13px !important;
+        line-height: 1.2;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
