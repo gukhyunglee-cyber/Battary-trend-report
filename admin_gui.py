@@ -98,21 +98,31 @@ st.markdown("""
         width: 100% !important;
         overflow: hidden !important;
     }
-    /* 각 컬럼의 너비 세부 조정 */
+    /* 각 컬럼의 너비 정밀 조정 */
     div[data-testid="column"]:nth-of-type(1) {
-        flex: 1 1 auto !important;
+        flex: 1 1 0% !important;
         min-width: 0px !important;
-        width: calc(100% - 50px) !important;
     }
     div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 45px !important; 
-        min-width: 45px !important;
-        text-align: right;
+        flex: 0 0 40px !important; /* 버튼 박스 너비 최소화 */
+        min-width: 40px !important;
+        max-width: 40px !important;
     }
-    /* 텍스트 생략 처리 및 폰트 최적화 */
+    /* 버튼 자체의 여백 제거 및 크기 고정 */
+    .stButton > button {
+        width: 35px !important;
+        height: 35px !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        line-height: 35px !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    /* 텍스트 생략 처리 */
     .small-font {
-        font-size: 13px !important;
-        line-height: 1.2;
+        font-size: 14px !important;
+        line-height: 35px; /* 버튼과 높이 맞춤 */
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -131,9 +141,9 @@ with tab1:
     
     for i, email in enumerate(recipients):
         with st.container():
-            cols = st.columns([9, 1])
+            cols = st.columns([10, 1])
             cols[0].markdown(f'<div class="small-font">{email}</div>', unsafe_allow_html=True)
-            if cols[1].button("🗑️", key=f"del_email_{i}", use_container_width=True):
+            if cols[1].button("🗑️", key=f"del_email_{i}"):
                 st.session_state.delete_confirm = ("email", i, email)
         st.divider()
 
@@ -156,11 +166,10 @@ with tab2:
     
     for i, site in enumerate(sites):
         with st.container():
-            cols = st.columns([5, 1])
+            cols = st.columns([10, 1])
             with cols[0]:
-                st.write(f"**{site['name']}**")
-                st.caption(f"{site['url']} | {site.get('category', 'ETC')}")
-            if cols[1].button("🗑️", key=f"del_site_{i}", use_container_width=True):
+                st.markdown(f'<div class="small-font"><b>{site["name"]}</b> | {site["url"]}</div>', unsafe_allow_html=True)
+            if cols[1].button("🗑️", key=f"del_site_{i}"):
                 st.session_state.delete_confirm = ("site", i, site['name'])
         st.divider()
 
