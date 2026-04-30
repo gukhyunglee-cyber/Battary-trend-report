@@ -88,27 +88,27 @@ st.markdown("""
         padding: 0.5rem !important;
         max-width: 100% !important;
     }
-    /* 리스트 버튼 스타일: 배경/테두리 제거 및 간격 최소화 */
-    div.stButton > button {
+    /* 팝업 버튼 스타일: 리스트 항목처럼 보이게 함 */
+    div[data-testid="stPopover"] > button {
         width: 100% !important;
         text-align: left !important;
         padding: 2px 5px !important;
         margin: 0px !important;
         border: none !important;
         border-radius: 0px !important;
-        border-bottom: 0.5px solid #444 !important; /* 구분선 */
+        border-bottom: 0.5px solid #444 !important;
         background-color: transparent !important;
         color: white !important;
         font-size: 14px !important;
         height: auto !important;
-        min-height: 32px !important;
+        min-height: 35px !important;
     }
-    div.stButton > button:hover {
+    div[data-testid="stPopover"] > button:hover {
         background-color: #333 !important;
     }
-    /* 탭 간격 조정 */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
+    /* 팝업 내부 스타일 */
+    div[data-testid="stPopoverContent"] {
+        padding: 10px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -122,8 +122,13 @@ with tab1:
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
     for i, email in enumerate(recipients):
-        if st.button(f"👤 {email}", key=f"rec_btn_{i}"):
-            st.session_state.delete_confirm = ("email", i, email)
+        with st.popover(f"👤 {email}", use_container_width=True):
+            st.write(f"**{email}** 수신인을 삭제하시겠습니까?")
+            if st.button("❌ 삭제하기", key=f"del_rec_{i}", type="primary", use_container_width=True):
+                recipients.pop(i)
+                conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
+                st.session_state.config = conf
+                st.rerun()
 
     st.markdown("---")
     with st.popover("➕ Add New Recipient", use_container_width=True):
@@ -141,12 +146,18 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
-        if st.button(f"🌐 {site['name']} ({site['url']})", key=f"site_btn_{i}"):
-            st.session_state.delete_confirm = ("site", i, site['name'])
+        with st.popover(f"🌐 {site['name']}", use_container_width=True):
+            st.caption(site['url'])
+            st.write(f"이 사이트를 수집 대상에서 삭제하시겠습니까?")
+            if st.button("❌ 삭제하기", key=f"del_site_{i}", type="primary", use_container_width=True):
+                sites.pop(i)
+                conf["TARGET_SITES"] = sites
+                st.session_state.config = conf
+                st.rerun()
 
     st.markdown("---")
     with st.popover("➕ Add New Site", use_container_width=True):
-        with st.form("add_site_form_v3"):
+        with st.form("add_site_form_v4"):
             s_name = st.text_input("Site Name")
             s_url = st.text_input("URL")
             s_cat = st.selectbox("Category", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
