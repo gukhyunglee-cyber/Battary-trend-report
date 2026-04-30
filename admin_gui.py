@@ -111,6 +111,35 @@ st.markdown("""
     div[data-testid="stPopoverContent"] {
         text-align: left !important;
     }
+    /* 컬럼 컨테이너 줄바꿈 해제 및 정렬 */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+    div[data-testid="column"]:nth-of-type(1) {
+        flex: 1 1 auto !important;
+        text-align: left !important;
+    }
+    div[data-testid="column"]:nth-of-type(2) {
+        flex: 0 0 45px !important;
+        text-align: right !important;
+        display: flex;
+        justify-content: flex-end;
+    }
+    /* 버튼 스타일 */
+    .stButton > button {
+        width: 35px !important;
+        height: 35px !important;
+        padding: 0px !important;
+    }
+    /* 텍스트 스타일 */
+    .small-font {
+        font-size: 14px !important;
+        text-align: left !important;
+    }
     </style>
     
     <script>
@@ -145,51 +174,27 @@ tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Sites", "⚙️ Settings"])
 # --- Tab 1: Recipients ---
 with tab1:
     st.subheader("Email Recipients")
-    st.caption("💡 주소를 길게 누르면 삭제 메뉴가 나타납니다.")
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
-    # Long-press Detection JS
-    st.markdown("""
-        <script>
-        const items = window.parent.document.querySelectorAll('.long-press-target');
-        items.forEach(item => {
-            item.oncontextmenu = function(e) {
-                e.preventDefault();
-                const index = this.getAttribute('data-index');
-                const type = this.getAttribute('data-type');
-                // Streamlit의 특정 버튼을 클릭하게 하거나 메시지를 보낼 수 있음
-                // 여기서는 팝업을 여는 현재의 안정적인 방식을 유지하되, 
-                // 시각적으로 롱프레스 안내를 강화합니다.
-            };
-        });
-        </script>
-        """, unsafe_allow_html=True)
-
     for i, email in enumerate(recipients):
-        # 팝업을 사용하되, 클릭이 아닌 '길게 누르기' 안내와 함께 배치
-        with st.popover(f"👤 {email}", use_container_width=True):
-            st.write(f"**{email}** 수신인을 삭제하시겠습니까?")
-            if st.button("❌ 확정: 삭제하기", key=f"del_rec_{i}", type="primary", use_container_width=True):
-                recipients.pop(i)
-                conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
-                st.session_state.config = conf
-                st.rerun()
+        cols = st.columns([6, 1])
+        cols[0].markdown(f'<div class="small-font">{email}</div>', unsafe_allow_html=True)
+        if cols[1].button("🗑️", key=f"del_rec_final_{i}"):
+            st.session_state.delete_confirm = ("email", i, email)
+        st.divider()
 
 # --- Tab 2: Target Sites ---
 with tab2:
     st.subheader("Collection Sites")
-    st.caption("💡 사이트 이름을 길게 누르면 삭제 메뉴가 나타납니다.")
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
-        with st.popover(f"🌐 {site['name']}", use_container_width=True):
-            st.caption(site['url'])
-            st.write(f"이 사이트를 수집 대상에서 삭제하시겠습니까?")
-            if st.button("❌ 확정: 삭제하기", key=f"del_site_{i}", type="primary", use_container_width=True):
-                sites.pop(i)
-                conf["TARGET_SITES"] = sites
-                st.session_state.config = conf
-                st.rerun()
+        cols = st.columns([6, 1])
+        with cols[0]:
+            st.markdown(f'<div class="small-font"><b>{site["name"]}</b><br><span style="font-size:11px; color:#888;">{site["url"]}</span></div>', unsafe_allow_html=True)
+        if cols[1].button("🗑️", key=f"del_site_final_{i}"):
+            st.session_state.delete_confirm = ("site", i, site['name'])
+        st.divider()
 
     st.markdown("---")
     with st.popover("➕ Add New Site", use_container_width=True):
