@@ -80,18 +80,27 @@ if "delete_confirm" not in st.session_state:
 
 conf = st.session_state.config
 
-# Force horizontal layout on mobile via CSS
+# Force horizontal layout on mobile via aggressive CSS
 st.markdown("""
     <style>
-    [data-testid="column"] {
-        width: unset !important;
-        flex: 1 1 0% !important;
-        min-width: unset !important;
+    /* 컬럼 컨테이너의 줄바꿈 강제 해제 */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
     }
-    /* 특정 버튼 스타일 조정 */
-    .stButton>button {
-        padding-left: 5px;
-        padding-right: 5px;
+    /* 각 컬럼의 너비가 좁아져도 유지되도록 설정 */
+    div[data-testid="column"] {
+        min-width: 0px !important;
+        flex: 1 1 auto !important;
+    }
+    /* 이메일 주소 텍스트 크기 미세 조정 */
+    .small-font {
+        font-size: 14px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -106,8 +115,8 @@ with tab1:
     
     for i, email in enumerate(recipients):
         with st.container():
-            cols = st.columns([8, 1])
-            cols[0].write(f"{email}")
+            cols = st.columns([9, 1])
+            cols[0].markdown(f'<div class="small-font">{email}</div>', unsafe_allow_html=True)
             if cols[1].button("🗑️", key=f"del_email_{i}", use_container_width=True):
                 st.session_state.delete_confirm = ("email", i, email)
         st.divider()
