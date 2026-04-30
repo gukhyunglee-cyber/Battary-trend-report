@@ -83,56 +83,42 @@ conf = st.session_state.config
 # Force horizontal layout on mobile via aggressive CSS
 st.markdown("""
     <style>
-    /* 전체 앱 너비 및 오버플로 제어 */
+    /* 전체 앱 너비 최적화 */
     .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding: 1rem !important;
         max-width: 100% !important;
     }
-    /* 컬럼 컨테이너 너비 고정 및 줄바꿈 해제 */
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        width: 100% !important;
-        overflow: hidden !important;
-    }
-    /* 각 컬럼의 너비 정밀 조정 */
+    /* 컬럼이 모바일에서 절대 줄바꿈되지 않도록 강제 */
     div[data-testid="column"]:nth-of-type(1) {
-        flex: 1 1 0% !important;
-        min-width: 0px !important;
+        flex: 85% !important;
+        min-width: 85% !important;
     }
     div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 40px !important; /* 버튼 박스 너비 최소화 */
-        min-width: 40px !important;
-        max-width: 40px !important;
+        flex: 15% !important;
+        min-width: 15% !important;
+        display: flex;
+        justify-content: flex-end;
     }
-    /* 버튼 자체의 여백 제거 및 크기 고정 */
+    /* 버튼 스타일 고정 */
     .stButton > button {
         width: 35px !important;
         height: 35px !important;
         padding: 0px !important;
-        margin: 0px !important;
-        line-height: 35px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        font-size: 18px !important;
     }
-    /* 텍스트 생략 처리 */
+    /* 텍스트 스타일 */
     .small-font {
         font-size: 14px !important;
-        line-height: 35px; /* 버튼과 높이 맞춤 */
+        line-height: 35px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        display: block;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # Mobile-friendly Tabs
-tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Target Sites", "⚙️ Settings"])
+tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Sites", "⚙️ Settings"])
 
 # --- Tab 1: Recipients ---
 with tab1:
