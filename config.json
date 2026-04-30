@@ -1,31 +1,20 @@
 {
   "EMAIL_RECIPIENT": "emittion@naver.com, gh2143.lee@samsung.com, hyeran.2@samsung.com, junghyuk.kim@samsung.com, zlzlznzn.yoo@samsung.com",
   "TARGET_SITES": [
-    {
-      "name": "Munro & Associates",
-      "url": "https://www.leandesign.com",
-      "category": "업계 미디어"
-    },
-    {
-      "name": "Charged EVs",
-      "url": "https://chargedevs.com",
-      "category": "업계 미디어"
-    },
-    {
-      "name": "Electrive",
-      "url": "https://www.electrive.com",
-      "category": "업계 미디어"
-    },
-    {
-      "name": "TheElec",
-      "url": "https://thelec.kr",
-      "category": "대한민국 미디어"
-    },
-    {
-      "name": "CNEVPost",
-      "url": "https://cnevpost.com/",
-      "category": "중국 동향"
-    }
+    {"name": "Munro & Associates", "url": "https://www.leandesign.com", "category": "업계 미디어"},
+    {"name": "Charged EVs", "url": "https://chargedevs.com", "category": "업계 미디어"},
+    {"name": "Electrive", "url": "https://www.electrive.com", "category": "업계 미디어"},
+    {"name": "Benchmark Minerals", "url": "https://source.benchmarkminerals.com", "category": "업계 미디어"},
+    {"name": "Energy Storage News", "url": "https://www.energy-storage.news", "category": "업계 미디어"},
+    {"name": "PV Tech", "url": "https://www.pv-tech.org", "category": "업계 미디어"},
+    {"name": "Dürr AG", "url": "https://www.durr.com/en/media", "category": "설비업체"},
+    {"name": "디일렉 (TheElec)", "url": "https://thelec.kr", "category": "대한민국 미디어"},
+    {"name": "피엔티 (PNT)", "url": "https://www.epnt.co.kr", "category": "설비업체"},
+    {"name": "씨아이에스 (CIS)", "url": "https://www.cisro.co.kr", "category": "설비업체"},
+    {"name": "원준 (ONEJOON)", "url": "http://www.onejoon.co.kr", "category": "설비업체"},
+    {"name": "IDTechEx", "url": "https://www.idtechex.com/research", "category": "리서치"},
+    {"name": "CNEVPost", "url": "https://cnevpost.com/", "category": "업계 미디어 / 중국"},
+    {"name": "Batteries News", "url": "https://batteriesnews.com/", "category": "업계 미디어 / 글로벌"}
   ],
   "GEMINI_API_KEY": "",
   "AI_PROVIDER": "gemini",
