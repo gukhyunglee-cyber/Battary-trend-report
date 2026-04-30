@@ -89,11 +89,12 @@ with tab1:
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
     for i, email in enumerate(recipients):
-        with st.container(border=True):
-            cols = st.columns([3, 1])
-            cols[0].write(f"**{email}**")
+        with st.container():
+            cols = st.columns([8, 1])
+            cols[0].write(f"{email}")
             if cols[1].button("🗑️", key=f"del_email_{i}", use_container_width=True):
                 st.session_state.delete_confirm = ("email", i, email)
+        st.divider()
 
     st.markdown("---")
     with st.popover("➕ Add New Recipient", use_container_width=True):
@@ -113,14 +114,14 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
-        with st.container(border=True):
-            st.write(f"**{site['name']}**")
-            st.caption(site['url'])
-            
-            c1, c2 = st.columns([2, 1])
-            c1.info(f"📁 {site.get('category', 'ETC')}")
-            if c2.button("🗑️ Delete", key=f"del_site_{i}", use_container_width=True):
+        with st.container():
+            cols = st.columns([5, 1])
+            with cols[0]:
+                st.write(f"**{site['name']}**")
+                st.caption(f"{site['url']} | {site.get('category', 'ETC')}")
+            if cols[1].button("🗑️", key=f"del_site_{i}", use_container_width=True):
                 st.session_state.delete_confirm = ("site", i, site['name'])
+        st.divider()
 
     st.markdown("---")
     with st.popover("➕ Add New Site", use_container_width=True):
