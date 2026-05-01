@@ -9,7 +9,22 @@ from datetime import datetime, time as dtime, timedelta
 # Page config
 st.set_page_config(page_title="Battery BM", page_icon="battery_bm_icon.png", layout="centered")
 
-# --- CSS ---
+# --- PWA & Mobile Meta Tags ---
+# GitHub Raw URL을 통해 아이콘 경로를 절대 경로로 지정하여 브라우저가 인식하게 함
+icon_url = f"https://raw.githubusercontent.com/{st.secrets['GITHUB_REPO']}/main/battery_bm_icon.png"
+
+st.markdown(f"""
+    <head>
+        <link rel="apple-touch-icon" href="{icon_url}">
+        <meta name="apple-mobile-web-app-title" content="Battery BM">
+        <meta name="application-name" content="Battery BM">
+        <meta name="theme-color" content="#1E1E2E">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    </head>
+""", unsafe_allow_html=True)
+
+# --- CSS: Layout Stabilization ---
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"], .main { 
@@ -21,6 +36,9 @@ st.markdown("""
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; margin-top: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
     .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
+    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
+        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -174,7 +192,6 @@ with tab3:
 
 with tab4:
     st.markdown('<div class="header-container"><div class="custom-header">리포트 센터</div></div>', unsafe_allow_html=True)
-    
     st.markdown('<div class="header-container"><div class="custom-header">📊 PPT 리포트 다운로드</div></div>', unsafe_allow_html=True)
     p1, p2 = st.columns(2)
     with p1:
@@ -200,4 +217,4 @@ with tab4:
 
 st.sidebar.image("battery_bm_icon.png", width=100)
 st.sidebar.title("Battery BM")
-st.sidebar.caption("Ver 5.2 (Hierarchy Unified)")
+st.sidebar.caption("Ver 5.3 (PWA Ready)")
