@@ -100,7 +100,7 @@ st.markdown("""
 
 # --- Tab 1: Recipients ---
 with tab1:
-    header_col, add_col = st.columns([2, 1])
+    header_col, add_col = st.columns([5, 1])
     header_col.subheader("이메일 수신인")
     with add_col:
         with st.popover("➕"):
@@ -126,7 +126,7 @@ with tab1:
 
 # --- Tab 2: Target Sites ---
 with tab2:
-    header_col2, add_col2 = st.columns([2, 1])
+    header_col2, add_col2 = st.columns([5, 1])
     header_col2.subheader("수집 사이트")
     with add_col2:
         with st.popover("➕"):
@@ -167,27 +167,27 @@ with tab3:
     btn_col1, btn_col2, btn_col3 = st.columns(3)
     
     with btn_col1:
-        if st.button("▶️ 실행", type="primary", use_container_width=True, help="지금 리포트 생성"):
+        if st.button("▶️실행", type="primary", use_container_width=True):
             g, repo_name = get_github_client()
             if g:
                 try:
                     repo = g.get_repo(repo_name)
                     workflow = repo.get_workflow("weekly_report.yml")
                     workflow.create_dispatch("main")
-                    st.success("시작됨!")
+                    st.success("OK")
                 except Exception as e:
-                    st.error(f"실패: {e}")
+                    st.error("Error")
 
     with btn_col2:
-        if st.button("💾 저장", type="primary", use_container_width=True, help="GitHub에 설정 저장"):
-            with st.spinner("저장..."):
+        if st.button("💾저장", type="primary", use_container_width=True):
+            with st.spinner(".."):
                 if save_config_to_github(conf):
-                    st.success("완료!")
+                    st.success("OK")
                 else:
-                    st.error("실패")
+                    st.error("Fail")
 
     with btn_col3:
-        if st.button("🔄 동기화", use_container_width=True, help="클라우드 데이터 불러오기"):
+        if st.button("🔄동기화", use_container_width=True):
             del st.session_state.config
             st.rerun()
 
