@@ -9,34 +9,38 @@ from datetime import datetime, time as dtime, timedelta
 # Page config
 st.set_page_config(page_title="Battery BM", page_icon="battery_bm_icon.png", layout="centered")
 
-# --- 강력한 PWA 메타 태그 및 자바스크립트 주입 (캐시 무시) ---
-ts = int(time.time())
-repo_name = st.secrets.get("GITHUB_REPO", "unknown/repo")
-icon_url = f"https://raw.githubusercontent.com/{repo_name}/main/battery_bm_icon.png?v={ts}"
+# --- 최종 강화 PWA 패치 (Data URI 방식) ---
+def get_base64_icon(path):
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    except: return ""
 
-# 브라우저의 설치 팝업 정보를 강제로 변경하기 위한 JS 주입
+icon_data = get_base64_icon("battery_bm_icon.png")
+icon_uri = f"data:image/png;base64,{icon_data}"
+
 st.markdown(f"""
-    <script>
-        // 1. 타이틀 변경
-        document.title = "Battery BM";
-        
-        // 2. 파비콘/터치아이콘 변경
-        var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-        link.type = 'image/png';
-        link.rel = 'apple-touch-icon';
-        link.href = '{icon_url}';
-        document.getElementsByTagName('head')[0].appendChild(link);
-
-        var link2 = document.querySelector("link[rel*='shortcut icon']") || document.createElement('link');
-        link2.href = '{icon_url}';
-        document.getElementsByTagName('head')[0].appendChild(link2);
-    </script>
     <head>
-        <link rel="apple-touch-icon" href="{icon_url}">
+        <link rel="apple-touch-icon" href="{icon_uri}">
+        <link rel="icon" type="image/png" href="{icon_uri}">
         <meta name="apple-mobile-web-app-title" content="Battery BM">
         <meta name="application-name" content="Battery BM">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
         <meta name="theme-color" content="#1E1E2E">
     </head>
+    <script>
+        // 설치 팝업 정보 강제 갱신 시도
+        document.title = "Battery BM";
+        const updateIcon = (rel) => {{
+            let link = document.querySelector(`link[rel*='${{rel}}']`) || document.createElement('link');
+            link.rel = rel; link.href = "{icon_uri}";
+            document.getElementsByTagName('head')[0].appendChild(link);
+        }};
+        updateIcon('apple-touch-icon');
+        updateIcon('icon');
+        updateIcon('shortcut icon');
+    </script>
 """, unsafe_allow_html=True)
 
 # --- CSS ---
@@ -110,12 +114,6 @@ def update_workflow_schedule(new_day_kst, new_time_kst):
     g, rn = get_github()
     if not g: return False
     try:
-        days_map = {"월": 1, "화": 2, "수": 3, "목": 4, "금": 5, "토": 6, "일": 0}
-        kst_day_num = days_map.get(new_day_kst, 1)
-        utc_hour = (new_time_kst.hour - 9) % 24
-        day_offset = -1 if new_time_kst.hour < 9 else 0
-        utc_day = (kst_day_num + day_offset) % 7
-        new_cron = f"{new_time_kst.minute} {utc_hour} * * {utc_day}"
         repo = g.get_repo(rn)
         yml_path = ".github/workflows/weekly_report.yml"
         contents = repo.get_contents(yml_path)
@@ -229,4 +227,4 @@ with tab4:
 
 st.sidebar.image("battery_bm_icon.png", width=100)
 st.sidebar.title("Battery BM")
-st.sidebar.caption("Ver 5.5 (JS Force Reload)")
+st.sidebar.caption("Ver 5.6 (Data URI Patch)")
