@@ -438,7 +438,11 @@ components.html("""
     setup();
     [100, 300, 800, 1500].forEach(t => setTimeout(setup, t));
 })();
+</script>
+""", height=0)
+
 # ── Session State ─────────────────────────────────────────────────────────────
+if "config" not in st.session_state:
     with st.spinner("동기화 중..."):
         st.session_state.config = load_config_from_github()
         st.session_state.last_sync = datetime.now().strftime("%H:%M:%S")
