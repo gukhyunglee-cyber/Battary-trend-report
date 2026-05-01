@@ -1,236 +1,480 @@
 import streamlit as st
 import json
-import os
 from github import Github
-import pandas as pd
 from datetime import datetime
 
-# Page config
 st.set_page_config(
-    page_title="Battery Trend Admin",
+    page_title="⚡ Battery Admin",
     page_icon="⚡",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
-# Configuration
 CONFIG_FILE = "config.json"
 
+
 def get_github_client():
-    """Get GitHub client using secrets."""
     token = st.secrets.get("GITHUB_TOKEN")
-    repo_name = st.secrets.get("GITHUB_REPO") # e.g. "username/battery-trend-report"
+    repo_name = st.secrets.get("GITHUB_REPO")
     if not token or not repo_name:
-        st.error("GitHub Secrets (GITHUB_TOKEN, GITHUB_REPO)가 설정되지 않았습니다.")
+        st.error("GitHub Secrets 미설정 (GITHUB_TOKEN, GITHUB_REPO)")
         return None, None
     return Github(token), repo_name
 
-def load_config_from_github():
-    """Load config.json from GitHub repository."""
+
+def load_config():
     g, repo_name = get_github_client()
-    if not g: return {}
-    
+    if not g:
+        return {}
     try:
         repo = g.get_repo(repo_name)
         contents = repo.get_contents(CONFIG_FILE)
         return json.loads(contents.decoded_content.decode("utf-8"))
     except Exception as e:
-        st.warning(f"기존 설정을 불러올 수 없습니다 (새로 시작하거나 파일을 확인하세요): {e}")
+        st.warning(f"설정 로드 실패: {e}")
         return {}
 
-def save_config_to_github(new_config):
-    """Save config.json back to GitHub."""
+
+def save_config(cfg):
     g, repo_name = get_github_client()
-    if not g: return False
-    
+    if not g:
+        return False
     try:
         repo = g.get_repo(repo_name)
-        json_content = json.dumps(new_config, indent=2, ensure_ascii=False)
-        
+        content = json.dumps(cfg, indent=2, ensure_ascii=False)
         try:
-            contents = repo.get_contents(CONFIG_FILE)
+            f = repo.get_contents(CONFIG_FILE)
             repo.update_file(
-                contents.path, 
-                f"Update config via Admin UI ({datetime.now().strftime('%Y-%m-%d %H:%M')})",
-                json_content, 
-                contents.sha
+                f.path,
+                f"Config update ({datetime.now().strftime('%Y-%m-%d %H:%M')})",
+                content,
+                f.sha,
             )
-        except:
-            # File doesn't exist, create it
-            repo.create_file(
-                CONFIG_FILE,
-                "Initial config via Admin UI",
-                json_content
-            )
+        except Exception:
+            repo.create_file(CONFIG_FILE, "Initial config", content)
         return True
     except Exception as e:
         st.error(f"저장 실패: {e}")
         return False
 
-# --- UI Layout ---
-st.title("⚡ Battery Admin")
-st.caption("모바일 관리 센터")
 
-# Load initial data
+# ── Design System ─────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* ===== BASE ===== */
+html, body, [data-testid="stAppViewContainer"], .main {
+    background: #07070F !important;
+    color: #E0E0F0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif !important;
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+}
+.main .block-container {
+    padding: 0.6rem 0.85rem 1.5rem !important;
+    max-width: 480px !important;
+    margin: 0 auto !important;
+}
+
+/* ===== HIDE STREAMLIT CHROME ===== */
+#MainMenu, footer, header, .stDeployButton { display: none !important; }
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stStatusWidget"] { display: none !important; }
+[data-testid="stToolbar"] { display: none !important; }
+
+/* ===== APP HEADER ===== */
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 0 12px;
+    border-bottom: 1px solid rgba(0, 255, 157, 0.12);
+    margin-bottom: 12px;
+    gap: 7px;
+}
+.app-logo { font-size: 1.25rem; }
+.app-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #00FF9D 0%, #00D1FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.3px;
+    flex: 1;
+}
+.app-ver {
+    font-size: 0.58rem;
+    color: rgba(0, 255, 157, 0.45);
+    border: 1px solid rgba(0, 255, 157, 0.18);
+    border-radius: 20px;
+    padding: 2px 8px;
+    background: rgba(0, 255, 157, 0.04);
+    white-space: nowrap;
+}
+
+/* ===== STATS ROW ===== */
+.stats-row {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 13px;
+}
+.stat-box {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 12px;
+    padding: 9px 6px 8px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+.stat-n {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #00D1FF;
+    line-height: 1;
+    display: block;
+}
+.stat-l {
+    font-size: 0.58rem;
+    color: #505060;
+    margin-top: 3px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== TABS ===== */
+[data-testid="stTabs"] > div:first-child {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.065) !important;
+    border-radius: 11px !important;
+    padding: 3px !important;
+    gap: 2px !important;
+    margin-bottom: 12px !important;
+}
+button[data-baseweb="tab"] {
+    background: transparent !important;
+    color: #505060 !important;
+    border-radius: 8px !important;
+    padding: 6px 0 !important;
+    font-size: 0.79rem !important;
+    font-weight: 500 !important;
+    border: none !important;
+    transition: all 0.15s !important;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    background: rgba(0, 255, 157, 0.10) !important;
+    color: #00FF9D !important;
+    font-weight: 700 !important;
+}
+.stTabs [data-baseweb="tab-highlight"],
+.stTabs [data-baseweb="tab-border"] { display: none !important; }
+
+/* ===== SECTION LABEL ===== */
+.sec-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #3A3A4E;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    flex: 1;
+    line-height: 2;
+}
+.cnt-pill {
+    background: rgba(0, 209, 255, 0.08);
+    border: 1px solid rgba(0, 209, 255, 0.18);
+    border-radius: 20px;
+    color: #00D1FF;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 9px;
+}
+
+/* ===== ITEM CARDS ===== */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: rgba(255, 255, 255, 0.025) !important;
+    border: 1px solid rgba(255, 255, 255, 0.065) !important;
+    border-radius: 11px !important;
+    padding: 0 6px !important;
+    margin-bottom: 5px !important;
+    transition: border-color 0.15s !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    border-color: rgba(255, 255, 255, 0.11) !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stHorizontalBlock"] {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 0 !important;
+}
+.item-main {
+    font-size: 0.82rem;
+    color: #C4C4DC;
+    padding: 5px 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.item-sub {
+    font-size: 0.65rem;
+    color: #3C3C52;
+    padding-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== DELETE BUTTONS (inside cards, higher specificity) ===== */
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stButton"] > button {
+    background: rgba(255, 55, 55, 0.07) !important;
+    border: 1px solid rgba(255, 55, 55, 0.16) !important;
+    color: #FF5555 !important;
+    border-radius: 7px !important;
+    padding: 3px 9px !important;
+    font-size: 0.73rem !important;
+    min-height: 0 !important;
+    line-height: 1.4 !important;
+    height: auto !important;
+    width: auto !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stButton"] > button:hover {
+    background: rgba(255, 55, 55, 0.14) !important;
+    border-color: rgba(255, 55, 55, 0.28) !important;
+}
+
+/* ===== ADD POPOVER TRIGGER ===== */
+[data-testid="stPopover"] > button {
+    background: rgba(0, 255, 157, 0.06) !important;
+    border: 1px solid rgba(0, 255, 157, 0.2) !important;
+    color: #00FF9D !important;
+    border-radius: 20px !important;
+    padding: 3px 13px !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
+
+/* ===== INPUTS ===== */
+[data-testid="stTextInput"] input,
+[data-testid="stPasswordInput"] input,
+[data-testid="stSelectbox"] > div > div {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px !important;
+    color: #E0E0F0 !important;
+    font-size: 0.84rem !important;
+}
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stPasswordInput"] input::placeholder {
+    color: #383848 !important;
+}
+label[data-testid="stWidgetLabel"] > div > p,
+label { font-size: 0.7rem !important; color: #555 !important; }
+
+/* ===== PRIMARY BUTTONS ===== */
+[data-testid="stButton"] > button[kind="primary"],
+[data-testid="stFormSubmitButton"] > button {
+    background: linear-gradient(135deg, #00FF9D 0%, #00D1FF 100%) !important;
+    color: #07070F !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: 0.8rem !important;
+}
+
+/* ===== SECONDARY/ACTION BUTTONS ===== */
+[data-testid="stButton"] > button[kind="secondary"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #9090A8 !important;
+    border-radius: 10px !important;
+    font-size: 0.8rem !important;
+}
+
+/* ===== SETTINGS CARD ===== */
+[data-testid="stVerticalBlockBorderWrapper"].settings-card {
+    padding: 12px !important;
+}
+
+/* ===== ALERTS ===== */
+[data-testid="stAlert"] {
+    border-radius: 10px !important;
+    font-size: 0.78rem !important;
+}
+
+/* ===== MISC ===== */
+div[data-testid="stHorizontalBlock"] {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+}
+.stSpinner > div { border-top-color: #00FF9D !important; }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ── Session State ─────────────────────────────────────────────────────────────
 if "config" not in st.session_state:
     with st.spinner("동기화 중..."):
-        st.session_state.config = load_config_from_github()
-
-if "delete_confirm" not in st.session_state:
-    st.session_state.delete_confirm = None
+        st.session_state.config = load_config()
 
 conf = st.session_state.config
+recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
+sites = conf.get("TARGET_SITES", [])
+has_key = bool(conf.get("GEMINI_API_KEY", "").strip())
 
-# Mobile-friendly Tabs
+
+# ── App Header ────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<div class="app-header">
+    <span class="app-logo">⚡</span>
+    <span class="app-name">Battery Admin</span>
+    <span class="app-ver">v2.6</span>
+</div>
+<div class="stats-row">
+    <div class="stat-box">
+        <span class="stat-n">{len(recipients)}</span>
+        <span class="stat-l">수신인</span>
+    </div>
+    <div class="stat-box">
+        <span class="stat-n">{len(sites)}</span>
+        <span class="stat-l">사이트</span>
+    </div>
+    <div class="stat-box">
+        <span class="stat-n" style="font-size:1.1rem; color:{'#00FF9D' if has_key else '#FF5555'}">
+            {'✓' if has_key else '✗'}
+        </span>
+        <span class="stat-l">API 키</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ── Tabs ──────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정"])
 
-# 모바일에서 컬럼 가로 배치 강제
-st.markdown("""
-    <style>
-    /* 가로 스크롤 완전 차단 */
-    html, body, [data-testid="stAppViewContainer"], .main {
-        overflow-x: hidden !important;
-        max-width: 100vw !important;
-    }
-    div[data-testid="stHorizontalBlock"] {
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-    }
-    /* 제목 스타일 커스텀 */
-    .custom-header {
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        white-space: nowrap !important;
-        margin-right: 10px !important;
-    }
-    /* 버튼 정렬 */
-    div[data-testid="column"] {
-        display: flex !important;
-        justify-content: flex-start !important;
-    }
-    /* 버튼 패딩 축소 */
-    div[data-testid="stPopover"] > button {
-        padding: 2px 10px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
-# --- Tab 1: Recipients ---
+# ── Tab 1: Recipients ─────────────────────────────────────────────────────────
 with tab1:
-    header_col, add_col, empty_col = st.columns([2, 2, 6])
-    with header_col:
-        st.markdown('<div class="custom-header">수신인</div>', unsafe_allow_html=True)
-    with add_col:
-        with st.popover("➕"):
-            new_email = st.text_input("이메일 입력")
-            if st.button("추가", use_container_width=True, type="primary"):
+    hc, ac = st.columns([5, 2])
+    with hc:
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">'
+            f'<span class="sec-label">수신 목록</span>'
+            f'<span class="cnt-pill">{len(recipients)}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    with ac:
+        with st.popover("+ 추가"):
+            new_email = st.text_input("이메일 주소", key="new_email", placeholder="name@example.com")
+            if st.button("추가하기", key="btn_add_email", type="primary", use_container_width=True):
                 if "@" in new_email:
-                    recipients_list = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
-                    recipients_list.append(new_email.strip())
-                    conf["EMAIL_RECIPIENT"] = ", ".join(recipients_list)
+                    recipients.append(new_email.strip())
+                    conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
                     st.session_state.config = conf
-                    st.success("추가 완료!")
+                    st.success("추가 완료")
                     st.rerun()
+                else:
+                    st.warning("올바른 이메일 형식이 아닙니다")
 
-    recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
-    
+    if not recipients:
+        st.markdown('<div style="text-align:center;color:#303040;font-size:0.8rem;padding:20px 0">수신인이 없습니다</div>', unsafe_allow_html=True)
+
     for i, email in enumerate(recipients):
-        with st.expander(f"👤 {email}"):
-            if st.button("❌ 삭제하기", key=f"del_rec_{i}", type="primary", use_container_width=True):
+        with st.container(border=True):
+            c1, c2 = st.columns([5, 1])
+            c1.markdown(f'<div class="item-main">👤 {email}</div>', unsafe_allow_html=True)
+            if c2.button("✕", key=f"del_r{i}"):
                 recipients.pop(i)
                 conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
                 st.session_state.config = conf
                 st.rerun()
 
-# --- Tab 2: Target Sites ---
+
+# ── Tab 2: Sites ──────────────────────────────────────────────────────────────
 with tab2:
-    header_col2, add_col2, empty_col2 = st.columns([2, 2, 6])
-    with header_col2:
-        st.markdown('<div class="custom-header">사이트</div>', unsafe_allow_html=True)
-    with add_col2:
-        with st.popover("➕"):
-            with st.form("add_site_form_v5"):
-                s_name = st.text_input("사이트 이름")
-                s_url = st.text_input("주소 (URL)")
-                s_cat = st.selectbox("분류", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
+    hc2, ac2 = st.columns([5, 2])
+    with hc2:
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">'
+            f'<span class="sec-label">수집 사이트</span>'
+            f'<span class="cnt-pill">{len(sites)}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    with ac2:
+        with st.popover("+ 추가"):
+            with st.form("add_site"):
+                s_name = st.text_input("사이트명", placeholder="Electrive")
+                s_url = st.text_input("URL", placeholder="https://...")
+                s_cat = st.selectbox(
+                    "분류",
+                    ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"],
+                )
                 if st.form_submit_button("등록하기", use_container_width=True):
                     if s_name and s_url:
-                        sites_list = conf.get("TARGET_SITES", [])
-                        sites_list.append({"name": s_name, "url": s_url, "category": s_cat})
-                        conf["TARGET_SITES"] = sites_list
+                        sites.append({"name": s_name, "url": s_url, "category": s_cat})
+                        conf["TARGET_SITES"] = sites
                         st.session_state.config = conf
-                        st.success("등록 완료!")
+                        st.success("등록 완료")
                         st.rerun()
+                    else:
+                        st.warning("이름과 URL을 입력하세요")
 
-    sites = conf.get("TARGET_SITES", [])
-    
+    if not sites:
+        st.markdown('<div style="text-align:center;color:#303040;font-size:0.8rem;padding:20px 0">등록된 사이트가 없습니다</div>', unsafe_allow_html=True)
+
     for i, site in enumerate(sites):
-        with st.expander(f"🌐 {site['name']}"):
-            st.caption(site['url'])
-            if st.button("❌ 삭제하기", key=f"del_site_{i}", type="primary", use_container_width=True):
+        with st.container(border=True):
+            c1, c2 = st.columns([5, 1])
+            url_preview = (site["url"][:26] + "…") if len(site["url"]) > 26 else site["url"]
+            with c1:
+                st.markdown(
+                    f'<div class="item-main">🌐 {site["name"]}</div>'
+                    f'<div class="item-sub">{site.get("category", "")} · {url_preview}</div>',
+                    unsafe_allow_html=True,
+                )
+            if c2.button("✕", key=f"del_s{i}"):
                 sites.pop(i)
                 conf["TARGET_SITES"] = sites
                 st.session_state.config = conf
                 st.rerun()
 
-# --- Tab 3: 설정 ---
+
+# ── Tab 3: Settings ───────────────────────────────────────────────────────────
 with tab3:
-    st.subheader("시스템 설정")
-    
+    st.markdown('<div class="sec-label" style="margin-bottom:8px">API 설정</div>', unsafe_allow_html=True)
+
     with st.container(border=True):
-        st.write("🔑 **API 설정**")
-        gemini_key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
+        gemini_key = st.text_input(
+            "Gemini API Key",
+            value=conf.get("GEMINI_API_KEY", ""),
+            type="password",
+            placeholder="AI 분석에 사용할 Gemini API 키",
+        )
         conf["GEMINI_API_KEY"] = gemini_key
-    
-    st.markdown("### 🚀 액션")
-    btn_col1, btn_col2, btn_col3 = st.columns(3)
-    
-    with btn_col1:
-        if st.button("▶️실행", type="primary", use_container_width=True):
-            g, repo_name = get_github_client()
+
+    st.markdown('<div class="sec-label" style="margin:14px 0 8px">액션</div>', unsafe_allow_html=True)
+
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        if st.button("▶ 실행", key="btn_run", type="primary", use_container_width=True):
+            g, rn = get_github_client()
             if g:
                 try:
-                    repo = g.get_repo(repo_name)
-                    workflow = repo.get_workflow("weekly_report.yml")
-                    workflow.create_dispatch("main")
-                    st.success("OK")
-                except Exception as e:
-                    st.error("Error")
-
-    with btn_col2:
-        if st.button("💾저장", type="primary", use_container_width=True):
-            with st.spinner(".."):
-                if save_config_to_github(conf):
-                    st.success("OK")
+                    g.get_repo(rn).get_workflow("weekly_report.yml").create_dispatch("main")
+                    st.success("워크플로 실행 시작")
+                except Exception:
+                    st.error("실행 실패")
+    with b2:
+        if st.button("💾 저장", key="btn_save", type="primary", use_container_width=True):
+            with st.spinner("저장 중..."):
+                if save_config(conf):
+                    st.success("저장 완료")
                 else:
-                    st.error("Fail")
-
-    with btn_col3:
-        if st.button("🔄동기화", use_container_width=True):
-            del st.session_state.config
+                    st.error("저장 실패")
+    with b3:
+        if st.button("🔄 동기화", key="btn_sync", use_container_width=True):
+            if "config" in st.session_state:
+                del st.session_state["config"]
             st.rerun()
-
-# Global Delete Confirmation (Fixed overlay style for mobile)
-if st.session_state.delete_confirm:
-    type, idx, val = st.session_state.delete_confirm
-    with st.container(border=True):
-        st.error(f"**정말 삭제하시겠습니까?**\n\n대상: {val}")
-        c1, c2 = st.columns(2)
-        if c1.button("삭제", type="primary", use_container_width=True):
-            if type == "email":
-                recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
-                recipients.pop(idx)
-                conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
-            else:
-                sites = conf.get("TARGET_SITES", [])
-                sites.pop(idx)
-                conf["TARGET_SITES"] = sites
-            st.session_state.delete_confirm = None
-            st.rerun()
-        if c2.button("취소", use_container_width=True):
-            st.session_state.delete_confirm = None
-            st.rerun()
-
-# Sidebar info
-st.sidebar.caption(f"Ver 2.5 (Mobile Optimized)")
-st.sidebar.write(f"Emails: {len(recipients)}")
-st.sidebar.write(f"Sites: {len(sites)}")
