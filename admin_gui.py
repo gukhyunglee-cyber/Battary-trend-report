@@ -137,7 +137,6 @@ conf = st.session_state.config
 
 # --- UI ---
 st.title("⚡ Battery BM")
-st.caption("인텔리전트 배터리 트렌드 분석기")
 
 tab1, tab2, tab3, tab4 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정", "📝 리포트"])
 
