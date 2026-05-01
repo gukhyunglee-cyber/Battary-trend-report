@@ -89,21 +89,26 @@ st.markdown("""
         justify-content: flex-start !important;
         align-items: center !important;
     }
-    /* 버튼 패딩 축소 및 폰트 크기 조정 */
+    /* 메인 컨테이너 여백 최소화 (공간 확보) */
+    .main .block-container {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+    /* 버튼 패딩 및 폰트 극단적 축소 */
     div[data-testid="stPopover"] > button, 
     div[data-testid="column"] button {
-        padding: 2px 2px !important;
-        font-size: 0.7rem !important;
+        padding: 2px 1px !important;
+        font-size: 0.65rem !important;
         white-space: nowrap !important;
         min-width: 0 !important;
+        border-radius: 4px !important;
     }
-    /* 컬럼 간격 및 패딩 극단적 축소 */
+    /* 컬럼 간격 제로화 */
     div[data-testid="column"] {
-        padding-left: 1px !important;
-        padding-right: 1px !important;
+        padding: 0 1px !important;
     }
     div[data-testid="stHorizontalBlock"] {
-        gap: 2px !important;
+        gap: 0px !important;
     }
     </style>
     """, unsafe_allow_html=True)
