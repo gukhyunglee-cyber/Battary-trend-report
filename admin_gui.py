@@ -2,8 +2,9 @@ import streamlit as st
 import json
 import os
 import base64
+import time
 from github import Github
-from datetime import datetime, time, timedelta
+from datetime import datetime, time as dtime, timedelta
 
 # Page config
 st.set_page_config(page_title="Battery Admin", page_icon="⚡", layout="centered")
@@ -20,9 +21,6 @@ st.markdown("""
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
     .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
-    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
-        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -41,21 +39,62 @@ def load_config():
     except: return {}
 
 def get_file_data(filename, is_binary=False):
-    """대용량 파일(1MB+) 대응 바이너리 로더"""
     g, rn = get_github()
     if not g: return None
     try:
         repo = g.get_repo(rn)
         content = repo.get_contents(filename)
         if is_binary:
-            if content.size > 1000000: # 1MB 초과 시 Blob API 사용
+            if content.size > 1000000:
                 blob = repo.get_git_blob(content.sha)
                 return base64.b64decode(blob.content)
             return content.decoded_content
         return content.decoded_content.decode("utf-8")
-    except Exception as e:
-        st.error(f"파일을 찾을 수 없습니다: {filename}")
-        return None
+    except: return None
+
+def monitor_workflow(repo, workflow_name):
+    """GitHub Actions 실행 상태를 실시간 모니터링"""
+    with st.status("🚀 리포트 생성 프로세스 시작...", expanded=True) as status:
+        status.write("📡 GitHub 서버에 실행 신호를 보냈습니다.")
+        workflow = repo.get_workflow(workflow_name)
+        workflow.create_dispatch("main")
+        
+        # 1. 실행 시작 대기 (GitHub API 반영 대기)
+        time.sleep(5)
+        
+        last_run = None
+        for _ in range(60): # 최대 10분 대기 (10s * 60)
+            runs = workflow.get_runs()
+            if runs.totalCount > 0:
+                latest = runs[0]
+                # 최근 1분 이내에 시작된 run 찾기
+                if latest.status in ["in_progress", "queued", "waiting"]:
+                    last_run = latest
+                    break
+            time.sleep(2)
+        
+        if not last_run:
+            status.update(label="❌ 서버 응답 지연", state="error")
+            return
+            
+        # 2. 진행 상황 모니터링
+        status.write("⏳ 서버 자원을 할당받아 작업을 준비 중입니다...")
+        while True:
+            last_run.update()
+            if last_run.status == "queued":
+                pass
+            elif last_run.status == "in_progress":
+                status.update(label="⚙️ 리포트 생성 중 (수집/AI 분석)...", state="running")
+            elif last_run.status == "completed":
+                if last_run.conclusion == "success":
+                    status.update(label="✅ 리포트 생성 완료!", state="complete")
+                    st.toast("모든 작업이 성공적으로 완료되었습니다!")
+                    time.sleep(2)
+                    st.rerun()
+                else:
+                    status.update(label="❌ 생성 실패", state="error")
+                break
+            time.sleep(10)
 
 def update_workflow_schedule(new_day_kst, new_time_kst):
     g, rn = get_github()
@@ -77,18 +116,18 @@ def update_workflow_schedule(new_day_kst, new_time_kst):
                 indent = line.split("- cron:")[0]
                 new_lines.append(f'{indent}- cron: \'{new_cron}\'  # KST {new_day_kst}요일 {new_time_kst.strftime("%H:%M")} (Auto-updated)')
             else: new_lines.append(line)
-        repo.update_file(yml_path, f"Update schedule to {new_day_kst} {new_time_kst}", "\n".join(new_lines), contents.sha)
+        repo.update_file(yml_path, f"Update schedule", "\n".join(new_lines), contents.sha)
         return True
     except: return False
 
-def save_config(cfg, new_day=None, new_time=None):
+def save_config(cfg, new_day, new_time):
     g, rn = get_github()
     if not g: return False
     try:
         repo = g.get_repo(rn)
         c = repo.get_contents("config.json")
         repo.update_file(c.path, "Update config", json.dumps(cfg, indent=2, ensure_ascii=False), c.sha)
-        if new_day and new_time: update_workflow_schedule(new_day, new_time)
+        update_workflow_schedule(new_day, new_time)
         return True
     except: return False
 
@@ -100,9 +139,8 @@ if "ppt_base_ready" not in st.session_state: st.session_state.ppt_base_ready = N
 
 conf = st.session_state.config
 
-# --- App Content ---
+# --- UI ---
 st.title("⚡ Battery Admin")
-st.caption("모바일 관리 센터")
 
 tab1, tab2, tab3, tab4 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정", "📝 리포트"])
 
@@ -148,14 +186,15 @@ with tab3:
     new_day = st.selectbox("발송 요일 (KST)", options=days_list, index=days_list.index(conf.get("SCHEDULE_DAY", "월")))
     conf["SCHEDULE_DAY"] = new_day
     h, m = map(int, conf.get("SCHEDULE_TIME", "07:00").split(":"))
-    new_time = st.time_input("발송 시간 (KST)", value=time(h, m))
+    new_time = st.time_input("발송 시간 (KST)", value=dtime(h, m))
     conf["SCHEDULE_TIME"] = new_time.strftime("%H:%M")
     
     st.markdown("### 🚀 액션")
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
-        if st.button("실행", key="btn_run", use_container_width=True):
-            g, rn = get_github(); repo = g.get_repo(rn); repo.get_workflow("weekly_report.yml").create_dispatch("main"); st.success("OK")
+        if st.button("실행", key="btn_run", use_container_width=True, type="primary"):
+            g, rn = get_github()
+            if g: monitor_workflow(g.get_repo(rn), "weekly_report.yml")
     with sc2:
         if st.button("저장", key="btn_save", use_container_width=True):
             if save_config(conf, new_day, new_time): st.success("OK")
@@ -164,23 +203,18 @@ with tab3:
 
 with tab4:
     st.subheader("📝 리포트 센터")
-    st.markdown("#### 📊 PPT 리포트 다운로드")
-    
-    # AI PPT
-    st.info("💡 **AI 분석 PPT**: Gemini AI가 트렌드를 심층 분석한 리포트 (용량 약 20MB)")
-    if st.button("🔍 AI PPT 데이터 가져오기", use_container_width=True):
-        with st.spinner("대용량 파일 로딩 중..."): st.session_state.ppt_ai_ready = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
-    if st.session_state.ppt_ai_ready:
-        st.download_button("💾 AI PPT 다운로드 시작", st.session_state.ppt_ai_ready, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
-
-    st.markdown("---")
-    
-    # 기본 PPT
-    st.info("💡 **기본 요약 PPT**: 뉴스 데이터 중심의 전체 요약 리포트")
-    if st.button("🔍 기본 PPT 데이터 가져오기", use_container_width=True):
-        with st.spinner("파일 로딩 중..."): st.session_state.ppt_base_ready = get_file_data("battery_trend_report.pptx", is_binary=True)
-    if st.session_state.ppt_base_ready:
-        st.download_button("💾 기본 PPT 다운로드 시작", st.session_state.ppt_base_ready, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+    st.markdown("#### 📊 PPT 다운로드")
+    p1, p2 = st.columns(2)
+    with p1:
+        if st.button("🔍 AI PPT 찾기", use_container_width=True):
+            with st.spinner("로딩..."): st.session_state.ppt_ai_ready = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
+        if st.session_state.ppt_ai_ready:
+            st.download_button("💾 AI PPT 저장", st.session_state.ppt_ai_ready, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+    with p2:
+        if st.button("🔍 기본 PPT 찾기", use_container_width=True):
+            with st.spinner("로딩..."): st.session_state.ppt_base_ready = get_file_data("battery_trend_report.pptx", is_binary=True)
+        if st.session_state.ppt_base_ready:
+            st.download_button("💾 기본 PPT 저장", st.session_state.ppt_base_ready, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
     st.markdown("---")
     st.markdown("#### 👁️ 내용 미리보기")
@@ -193,6 +227,6 @@ with tab4:
     if st.session_state.current_report:
         st.markdown('<div class="report-box">', unsafe_allow_html=True); st.markdown(st.session_state.current_report); st.markdown('</div>', unsafe_allow_html=True)
 
-st.sidebar.caption("Ver 4.5 (Large PPT Support)")
+st.sidebar.caption("Ver 4.6 (Live Monitoring Added)")
 st.sidebar.write(f"발송 요일: {conf.get('SCHEDULE_DAY', '월')}요일")
 st.sidebar.write(f"발송 시간: {conf.get('SCHEDULE_TIME', '07:00')} (KST)")
