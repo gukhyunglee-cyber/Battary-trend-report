@@ -6,33 +6,40 @@ import time
 from github import Github
 from datetime import datetime, time as dtime, timedelta
 
-# Page config: Brand Update to Battery BM (with Cache Busting)
-st.set_page_config(
-    page_title="Battery BM", 
-    page_icon="battery_bm_icon.png", 
-    layout="centered"
-)
+# Page config
+st.set_page_config(page_title="Battery BM", page_icon="battery_bm_icon.png", layout="centered")
 
-# --- PWA & Mobile Meta Tags (Cache Busting Applied) ---
-# ?v=시각 을 붙여 브라우저가 무조건 새로 읽게 함
+# --- 강력한 PWA 메타 태그 및 자바스크립트 주입 (캐시 무시) ---
 ts = int(time.time())
 repo_name = st.secrets.get("GITHUB_REPO", "unknown/repo")
 icon_url = f"https://raw.githubusercontent.com/{repo_name}/main/battery_bm_icon.png?v={ts}"
 
+# 브라우저의 설치 팝업 정보를 강제로 변경하기 위한 JS 주입
 st.markdown(f"""
+    <script>
+        // 1. 타이틀 변경
+        document.title = "Battery BM";
+        
+        // 2. 파비콘/터치아이콘 변경
+        var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+        link.type = 'image/png';
+        link.rel = 'apple-touch-icon';
+        link.href = '{icon_url}';
+        document.getElementsByTagName('head')[0].appendChild(link);
+
+        var link2 = document.querySelector("link[rel*='shortcut icon']") || document.createElement('link');
+        link2.href = '{icon_url}';
+        document.getElementsByTagName('head')[0].appendChild(link2);
+    </script>
     <head>
         <link rel="apple-touch-icon" href="{icon_url}">
-        <link rel="shortcut icon" href="{icon_url}">
         <meta name="apple-mobile-web-app-title" content="Battery BM">
         <meta name="application-name" content="Battery BM">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="theme-color" content="#1E1E2E">
-        <title>Battery BM</title>
     </head>
 """, unsafe_allow_html=True)
 
-# --- CSS: Layout Stabilization ---
+# --- CSS ---
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"], .main { 
@@ -44,9 +51,6 @@ st.markdown("""
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; margin-top: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
     .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
-    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
-        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -225,4 +229,4 @@ with tab4:
 
 st.sidebar.image("battery_bm_icon.png", width=100)
 st.sidebar.title("Battery BM")
-st.sidebar.caption("Ver 5.4 (Cache Busting Applied)")
+st.sidebar.caption("Ver 5.5 (JS Force Reload)")
