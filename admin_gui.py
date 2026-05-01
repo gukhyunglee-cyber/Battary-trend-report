@@ -160,7 +160,7 @@ with tab3:
     st.markdown("### 🚀 액션")
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
-        if st.button("실행", key="btn_run", type="primary", use_container_width=True):
+        if st.button("실행", key="btn_run", use_container_width=True):
             g, rn = get_github()
             if g:
                 try: 
@@ -168,7 +168,7 @@ with tab3:
                     st.success("OK")
                 except: st.error("ERR")
     with sc2:
-        if st.button("저장", key="btn_save", type="primary", use_container_width=True):
+        if st.button("저장", key="btn_save", use_container_width=True):
             if save_config(conf): st.success("OK")
     with sc3:
         if st.button("동기", key="btn_sync", use_container_width=True):
