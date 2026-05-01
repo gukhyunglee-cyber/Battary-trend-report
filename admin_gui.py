@@ -120,8 +120,11 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     for i, s in enumerate(sites):
         with st.expander(f"🌐 {s['name']}"):
-            st.caption(s['url']); if st.button("❌ 삭제", key=f"del_s_{i}", type="primary", use_container_width=True):
-                sites.pop(i); conf["TARGET_SITES"] = sites; st.rerun()
+            st.caption(s['url'])
+            if st.button("❌ 삭제", key=f"del_s_{i}", type="primary", use_container_width=True):
+                sites.pop(i)
+                conf["TARGET_SITES"] = sites
+                st.rerun()
 
 with tab3:
     st.subheader("시스템 설정")
