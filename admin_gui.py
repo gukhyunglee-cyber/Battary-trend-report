@@ -94,12 +94,6 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: center !important;
-        overflow: hidden !important;
-    }
-    /* 두 번째 컬럼 오른쪽 끝 정렬 */
-    div[data-testid="column"]:last-child {
-        display: flex !important;
-        justify-content: flex-end !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -169,29 +163,33 @@ with tab3:
         gemini_key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
         conf["GEMINI_API_KEY"] = gemini_key
     
-    st.markdown("### 🚀 실행")
-    if st.button("▶️ 지금 실행하기", type="primary", use_container_width=True):
-        g, repo_name = get_github_client()
-        if g:
-            try:
-                repo = g.get_repo(repo_name)
-                workflow = repo.get_workflow("weekly_report.yml")
-                workflow.create_dispatch("main")
-                st.success("✅ 리포트 생성이 시작되었습니다! (수 분 소요)")
-            except Exception as e:
-                st.error(f"실행 실패: {e}")
+    st.markdown("### 🚀 액션")
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
+    
+    with btn_col1:
+        if st.button("▶️ 실행", type="primary", use_container_width=True, help="지금 리포트 생성"):
+            g, repo_name = get_github_client()
+            if g:
+                try:
+                    repo = g.get_repo(repo_name)
+                    workflow = repo.get_workflow("weekly_report.yml")
+                    workflow.create_dispatch("main")
+                    st.success("시작됨!")
+                except Exception as e:
+                    st.error(f"실패: {e}")
 
-    st.markdown("---")
-    if st.button("💾 설정 저장 (GitHub)", type="primary", use_container_width=True):
-        with st.spinner("저장 중..."):
-            if save_config_to_github(conf):
-                st.success("✅ GitHub에 저장 완료!")
-            else:
-                st.error("저장 실패")
+    with btn_col2:
+        if st.button("💾 저장", type="primary", use_container_width=True, help="GitHub에 설정 저장"):
+            with st.spinner("저장..."):
+                if save_config_to_github(conf):
+                    st.success("완료!")
+                else:
+                    st.error("실패")
 
-    if st.button("🔄 클라우드 동기화", use_container_width=True):
-        del st.session_state.config
-        st.rerun()
+    with btn_col3:
+        if st.button("🔄 동기화", use_container_width=True, help="클라우드 데이터 불러오기"):
+            del st.session_state.config
+            st.rerun()
 
 # Global Delete Confirmation (Fixed overlay style for mobile)
 if st.session_state.delete_confirm:
