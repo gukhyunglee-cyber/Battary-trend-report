@@ -59,6 +59,33 @@ def save_config(cfg):
         return False
 
 
+# ── Delete Callback (fires before main script on rerun) ───────────────────────
+def do_delete():
+    val = st.session_state.get("del_target", "")
+    if not val:
+        return
+    cfg = st.session_state.get("config", {})
+    if val.startswith("r:"):
+        email = val[2:]
+        rlist = [r.strip() for r in cfg.get("EMAIL_RECIPIENT", "").split(",")
+                 if r.strip() and r.strip() != email]
+        cfg["EMAIL_RECIPIENT"] = ", ".join(rlist)
+    elif val.startswith("s:"):
+        name = val[2:]
+        cfg["TARGET_SITES"] = [s for s in cfg.get("TARGET_SITES", []) if s["name"] != name]
+    st.session_state.config = cfg
+
+
+# Hidden delete trigger input — rendered first so callback runs before config read
+st.markdown(
+    '<style>[data-testid="stTextInput"]:has(input[placeholder="__bd__"])'
+    '{display:none!important;height:0!important;margin:0!important;padding:0!important}</style>',
+    unsafe_allow_html=True,
+)
+st.text_input("", key="del_target", on_change=do_delete,
+              label_visibility="collapsed", placeholder="__bd__")
+
+
 # ── Design System ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -100,7 +127,6 @@ html, body, [data-testid="stAppViewContainer"], .main {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: -0.3px;
     flex: 1;
 }
 .app-ver {
@@ -111,7 +137,7 @@ html, body, [data-testid="stAppViewContainer"], .main {
     padding: 1px 7px;
 }
 
-/* ===== STATS ROW ===== */
+/* ===== STATS ===== */
 .stats-row { display: flex; gap: 5px; margin-bottom: 8px; }
 .stat-box {
     flex: 1;
@@ -122,7 +148,8 @@ html, body, [data-testid="stAppViewContainer"], .main {
     text-align: center;
 }
 .stat-n { font-size: 1.2rem; font-weight: 800; color: #00D1FF; line-height: 1; display: block; }
-.stat-l { font-size: 0.55rem; color: #454558; margin-top: 2px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-l { font-size: 0.55rem; color: #454558; margin-top: 2px; display: block;
+          text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* ===== TABS ===== */
 [data-testid="stTabs"] > div:first-child {
@@ -175,7 +202,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     background: rgba(255,255,255,0.025) !important;
     border: 1px solid rgba(255,255,255,0.06) !important;
     border-radius: 9px !important;
-    padding: 0 5px !important;
+    padding: 0 8px !important;
     margin-bottom: 2px !important;
     position: relative !important;
     overflow: hidden !important;
@@ -183,6 +210,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     user-select: none !important;
     -webkit-touch-callout: none !important;
     transition: border-color 0.2s, background 0.2s !important;
+    cursor: default !important;
 }
 
 /* ===== HOLD PROGRESS BAR ===== */
@@ -203,55 +231,15 @@ button[data-baseweb="tab"][aria-selected="true"] {
     width: 100% !important;
     transition: width 0.6s linear !important;
 }
-
-/* ===== LONG PRESSED STATE ===== */
-[data-testid="stVerticalBlockBorderWrapper"].long-pressed {
-    border-color: rgba(255,68,68,0.3) !important;
-    background: rgba(255,55,55,0.05) !important;
-}
-
-/* ===== DELETE COLUMN: hidden by default ===== */
-[data-testid="stVerticalBlockBorderWrapper"]:not(.long-pressed) > div > [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child {
-    flex: 0 0 0px !important;
-    max-width: 0 !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-}
-[data-testid="stVerticalBlockBorderWrapper"]:not(.long-pressed) > div > [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child * {
-    visibility: hidden !important;
-}
-/* Text column fills full width when delete is hidden */
-[data-testid="stVerticalBlockBorderWrapper"]:not(.long-pressed) > div > [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
-    flex: 1 1 auto !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-}
-
-/* ===== DELETE BUTTON (revealed on long press) ===== */
-[data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stHorizontalBlock"] {
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    gap: 0 !important;
-}
-[data-testid="stVerticalBlockBorderWrapper"].long-pressed [data-testid="stButton"] > button {
-    background: linear-gradient(135deg, #FF4040, #FF7070) !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 7px !important;
-    font-size: 0.72rem !important;
-    font-weight: 700 !important;
-    padding: 4px 10px !important;
-    white-space: nowrap !important;
-    min-height: 0 !important;
-    height: auto !important;
+[data-testid="stVerticalBlockBorderWrapper"].holding {
+    border-color: rgba(255,100,100,0.2) !important;
 }
 
 /* ===== ITEM TEXT ===== */
 .item-main {
     font-size: 0.78rem;
     color: #C4C4DC;
-    padding: 3px 0 2px;
+    padding: 5px 0 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -259,13 +247,13 @@ button[data-baseweb="tab"][aria-selected="true"] {
 .item-sub {
     font-size: 0.61rem;
     color: #383850;
-    padding-bottom: 3px;
+    padding-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* ===== ADD POPOVER TRIGGER ===== */
+/* ===== ADD POPOVER ===== */
 [data-testid="stPopover"] > button {
     background: rgba(0,255,157,0.06) !important;
     border: 1px solid rgba(0,255,157,0.18) !important;
@@ -310,10 +298,11 @@ label { font-size: 0.68rem !important; color: #555 !important; }
     font-size: 0.78rem !important;
 }
 
-/* ===== SETTINGS BORDERED CARD ===== */
+/* ===== SETTINGS CARD (has input) ===== */
 [data-testid="stVerticalBlockBorderWrapper"]:has([data-testid="stTextInput"]),
 [data-testid="stVerticalBlockBorderWrapper"]:has([data-testid="stPasswordInput"]) {
     padding: 8px 10px !important;
+    cursor: auto !important;
     -webkit-user-select: auto !important;
     user-select: auto !important;
 }
@@ -321,64 +310,135 @@ label { font-size: 0.68rem !important; color: #555 !important; }
 /* ===== ALERTS ===== */
 [data-testid="stAlert"] { border-radius: 9px !important; font-size: 0.76rem !important; }
 
-/* ===== COLUMNS NOWRAP ===== */
-div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
-
-/* ===== HIDE JS COMPONENT IFRAME ===== */
+/* ===== MISC ===== */
+div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; align-items: center !important; }
 [data-testid="stCustomComponentV1"] iframe { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Long Press JS ─────────────────────────────────────────────────────────────
+# ── Context Menu + Long Press / Right-click JS ────────────────────────────────
 components.html("""
 <script>
 (function () {
     const p = window.parent.document;
 
+    /* ── Context menu element ── */
+    if (p.getElementById('__bc_menu')) return; // already injected
+
+    const menu = p.createElement('div');
+    menu.id = '__bc_menu';
+    Object.assign(menu.style, {
+        position: 'fixed', display: 'none', zIndex: '999999',
+        background: '#12121E', border: '1px solid rgba(255,55,55,0.3)',
+        borderRadius: '10px', overflow: 'hidden',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.7)', minWidth: '120px',
+    });
+
+    const item = p.createElement('div');
+    item.id = '__bc_del';
+    item.textContent = '🗑  삭제';
+    Object.assign(item.style, {
+        padding: '10px 18px', fontSize: '0.82rem', fontWeight: '700',
+        color: '#FF5555', cursor: 'pointer', userSelect: 'none',
+        fontFamily: '-apple-system, sans-serif',
+    });
+    item.addEventListener('mouseover', () => { item.style.background = 'rgba(255,55,55,0.1)'; });
+    item.addEventListener('mouseout',  () => { item.style.background = 'transparent'; });
+
+    menu.appendChild(item);
+    p.body.appendChild(menu);
+
+    let pendingId = null;
+
+    function showMenu(x, y, id) {
+        pendingId = id;
+        menu.style.display = 'block';
+        const vw = p.documentElement.clientWidth;
+        const vh = p.documentElement.clientHeight;
+        menu.style.left = Math.min(x, vw - 140) + 'px';
+        menu.style.top  = Math.min(y, vh - 52)  + 'px';
+    }
+
+    function hideMenu() {
+        menu.style.display = 'none';
+        pendingId = null;
+    }
+
+    /* ── Trigger delete via hidden Streamlit input ── */
+    item.addEventListener('click', () => {
+        if (!pendingId) return;
+        const input = p.querySelector('input[placeholder="__bd__"]');
+        if (input) {
+            const setter = Object.getOwnPropertyDescriptor(
+                window.parent.HTMLInputElement.prototype, 'value'
+            ).set;
+            setter.call(input, pendingId);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        hideMenu();
+    });
+
+    /* ── Dismiss on outside click/touch ── */
+    p.addEventListener('mousedown',   e => { if (!menu.contains(e.target)) hideMenu(); });
+    p.addEventListener('touchstart',  e => { if (!menu.contains(e.target)) hideMenu(); }, { passive: true });
+    p.addEventListener('scroll',      hideMenu, { passive: true });
+
+    /* ── Extract item ID from card ── */
+    function getItemId(wrap) {
+        const main = wrap.querySelector('.item-main');
+        if (!main) return null;
+        const text = (main.textContent || main.innerText).trim();
+        const chars = [...text];          // handle surrogate pairs
+        const emoji = chars[0];
+        const value = chars.slice(2).join('').trim(); // skip emoji + space
+        if (emoji === '👤') return 'r:' + value;
+        if (emoji === '🌐') return 's:' + value;
+        return null;
+    }
+
+    /* ── Attach events to each item card ── */
     function setup() {
         p.querySelectorAll('[data-testid="stVerticalBlockBorderWrapper"]').forEach(w => {
-            // Skip settings cards (contain input, not horizontal block)
-            if (w.dataset.lp || !w.querySelector('[data-testid="stHorizontalBlock"]')) return;
-            w.dataset.lp = '1';
+            if (w.dataset.bcSetup) return;
+            if (!getItemId(w)) return; // skip settings card
+            w.dataset.bcSetup = '1';
 
-            let t = null;
+            let timer = null;
 
-            function start(e) {
+            /* Mobile: long press */
+            w.addEventListener('touchstart', e => {
+                const t = e.touches[0];
                 w.classList.add('holding');
-                t = setTimeout(() => {
-                    p.querySelectorAll('.long-pressed').forEach(el => { if (el !== w) el.classList.remove('long-pressed'); });
-                    w.classList.add('long-pressed');
+                timer = setTimeout(() => {
                     w.classList.remove('holding');
                     if (navigator.vibrate) navigator.vibrate(40);
+                    showMenu(t.clientX, t.clientY, getItemId(w));
                 }, 600);
-            }
-
-            function cancel() {
-                clearTimeout(t);
-                w.classList.remove('holding');
-            }
-
-            w.addEventListener('touchstart', start, { passive: true });
-            w.addEventListener('touchend', cancel);
-            w.addEventListener('touchmove', cancel);
-            w.addEventListener('contextmenu', e => e.preventDefault());
-            w.addEventListener('mousedown', start);
-            w.addEventListener('mouseup', cancel);
-            w.addEventListener('mouseleave', cancel);
-        });
-
-        if (!p.body.dataset.lpDismiss) {
-            p.body.dataset.lpDismiss = '1';
-            p.addEventListener('touchstart', e => {
-                if (!e.target.closest('[data-testid="stVerticalBlockBorderWrapper"]'))
-                    p.querySelectorAll('.long-pressed').forEach(el => el.classList.remove('long-pressed'));
             }, { passive: true });
-            p.addEventListener('mousedown', e => {
-                if (!e.target.closest('[data-testid="stVerticalBlockBorderWrapper"]'))
-                    p.querySelectorAll('.long-pressed').forEach(el => el.classList.remove('long-pressed'));
+
+            w.addEventListener('touchend',  () => { clearTimeout(timer); w.classList.remove('holding'); });
+            w.addEventListener('touchmove', () => { clearTimeout(timer); w.classList.remove('holding'); });
+
+            /* Prevent default context menu on mobile */
+            w.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                /* PC: right-click shows menu at cursor */
+                const id = getItemId(w);
+                if (id) showMenu(e.clientX, e.clientY, id);
             });
-        }
+
+            /* PC: mouse hold (optional visual feedback) */
+            w.addEventListener('mousedown', e => {
+                if (e.button !== 0) return; // only left button hold
+                w.classList.add('holding');
+                timer = setTimeout(() => {
+                    w.classList.remove('holding');
+                }, 600);
+            });
+            w.addEventListener('mouseup',    () => { clearTimeout(timer); w.classList.remove('holding'); });
+            w.addEventListener('mouseleave', () => { clearTimeout(timer); w.classList.remove('holding'); });
+        });
     }
 
     new MutationObserver(setup).observe(p.body, { childList: true, subtree: true });
@@ -404,7 +464,7 @@ st.markdown(f"""
 <div class="app-header">
     <span class="app-logo">⚡</span>
     <span class="app-name">Battery Admin</span>
-    <span class="app-ver">v2.7</span>
+    <span class="app-ver">v2.8</span>
 </div>
 <div class="stats-row">
     <div class="stat-box">
@@ -416,7 +476,7 @@ st.markdown(f"""
         <span class="stat-l">사이트</span>
     </div>
     <div class="stat-box">
-        <span class="stat-n" style="font-size:1rem; color:{'#00FF9D' if has_key else '#FF5555'}">
+        <span class="stat-n" style="font-size:1rem;color:{'#00FF9D' if has_key else '#FF5555'}">
             {'✓' if has_key else '✗'}
         </span>
         <span class="stat-l">API 키</span>
@@ -455,15 +515,9 @@ with tab1:
     if not recipients:
         st.markdown('<div style="text-align:center;color:#2A2A3C;font-size:0.75rem;padding:14px 0">수신인 없음</div>', unsafe_allow_html=True)
 
-    for i, email in enumerate(recipients):
+    for email in recipients:
         with st.container(border=True):
-            c1, c2 = st.columns([5, 1])
-            c1.markdown(f'<div class="item-main">👤 {email}</div>', unsafe_allow_html=True)
-            if c2.button("삭제", key=f"del_r{i}", type="primary"):
-                recipients.pop(i)
-                conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
-                st.session_state.config = conf
-                st.rerun()
+            st.markdown(f'<div class="item-main">👤 {email}</div>', unsafe_allow_html=True)
 
 
 # ── Tab 2: Sites ──────────────────────────────────────────────────────────────
@@ -498,21 +552,14 @@ with tab2:
     if not sites:
         st.markdown('<div style="text-align:center;color:#2A2A3C;font-size:0.75rem;padding:14px 0">등록된 사이트 없음</div>', unsafe_allow_html=True)
 
-    for i, site in enumerate(sites):
+    for site in sites:
+        url_preview = (site["url"][:26] + "…") if len(site["url"]) > 26 else site["url"]
         with st.container(border=True):
-            c1, c2 = st.columns([5, 1])
-            url_preview = (site["url"][:24] + "…") if len(site["url"]) > 24 else site["url"]
-            with c1:
-                st.markdown(
-                    f'<div class="item-main">🌐 {site["name"]}</div>'
-                    f'<div class="item-sub">{site.get("category","")} · {url_preview}</div>',
-                    unsafe_allow_html=True,
-                )
-            if c2.button("삭제", key=f"del_s{i}", type="primary"):
-                sites.pop(i)
-                conf["TARGET_SITES"] = sites
-                st.session_state.config = conf
-                st.rerun()
+            st.markdown(
+                f'<div class="item-main">🌐 {site["name"]}</div>'
+                f'<div class="item-sub">{site.get("category","")} · {url_preview}</div>',
+                unsafe_allow_html=True,
+            )
 
 
 # ── Tab 3: Settings ───────────────────────────────────────────────────────────
