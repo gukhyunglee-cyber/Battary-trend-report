@@ -96,6 +96,11 @@ st.markdown("""
         align-items: center !important;
         overflow: hidden !important;
     }
+    /* 두 번째 컬럼 오른쪽 끝 정렬 */
+    div[data-testid="column"]:last-child {
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
