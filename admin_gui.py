@@ -80,36 +80,6 @@ if "delete_confirm" not in st.session_state:
 
 conf = st.session_state.config
 
-# Force ultra-compact layout on mobile via CSS
-st.markdown("""
-    <style>
-    /* 전체 앱 여백 최소화 */
-    .block-container {
-        padding: 0.5rem !important;
-        max-width: 100% !important;
-    }
-    /* 팝업 버튼: 내부 flex 컨테이너까지 좌측 정렬 강제 */
-    div[data-testid="stPopover"] > button {
-        text-align: left !important;
-        justify-content: flex-start !important;
-        width: 100% !important;
-    }
-    div[data-testid="stPopover"] > button > div {
-        justify-content: flex-start !important;
-        text-align: left !important;
-        width: 100% !important;
-    }
-    div[data-testid="stPopover"] > button > div > div:first-child {
-        flex-grow: 1 !important;
-        text-align: left !important;
-    }
-    div[data-testid="stPopover"] p,
-    div[data-testid="stPopover"] span {
-        text-align: left !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
 # Mobile-friendly Tabs
 tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Sites", "⚙️ Settings"])
 
@@ -119,8 +89,7 @@ with tab1:
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
     for i, email in enumerate(recipients):
-        with st.popover(f"👤 {email}", use_container_width=True):
-            st.write(f"**{email}** 수신인을 삭제하시겠습니까?")
+        with st.expander(f"👤 {email}"):
             if st.button("❌ 삭제하기", key=f"del_rec_{i}", type="primary", use_container_width=True):
                 recipients.pop(i)
                 conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
@@ -143,9 +112,8 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
-        with st.popover(f"🌐 {site['name']}", use_container_width=True):
+        with st.expander(f"🌐 {site['name']}"):
             st.caption(site['url'])
-            st.write(f"이 사이트를 수집 대상에서 삭제하시겠습니까?")
             if st.button("❌ 삭제하기", key=f"del_site_{i}", type="primary", use_container_width=True):
                 sites.pop(i)
                 conf["TARGET_SITES"] = sites
@@ -208,6 +176,6 @@ if st.session_state.delete_confirm:
             st.rerun()
 
 # Sidebar info
-st.sidebar.caption(f"Ver 2.0 (Mobile Optimized)")
+st.sidebar.caption(f"Ver 2.5 (Mobile Optimized)")
 st.sidebar.write(f"Emails: {len(recipients)}")
 st.sidebar.write(f"Sites: {len(sites)}")
