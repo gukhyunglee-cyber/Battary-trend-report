@@ -6,21 +6,29 @@ import time
 from github import Github
 from datetime import datetime, time as dtime, timedelta
 
-# Page config
-st.set_page_config(page_title="Battery BM", page_icon="battery_bm_icon.png", layout="centered")
+# Page config: Brand Update to Battery BM (with Cache Busting)
+st.set_page_config(
+    page_title="Battery BM", 
+    page_icon="battery_bm_icon.png", 
+    layout="centered"
+)
 
-# --- PWA & Mobile Meta Tags ---
-# GitHub Raw URL을 통해 아이콘 경로를 절대 경로로 지정하여 브라우저가 인식하게 함
-icon_url = f"https://raw.githubusercontent.com/{st.secrets['GITHUB_REPO']}/main/battery_bm_icon.png"
+# --- PWA & Mobile Meta Tags (Cache Busting Applied) ---
+# ?v=시각 을 붙여 브라우저가 무조건 새로 읽게 함
+ts = int(time.time())
+repo_name = st.secrets.get("GITHUB_REPO", "unknown/repo")
+icon_url = f"https://raw.githubusercontent.com/{repo_name}/main/battery_bm_icon.png?v={ts}"
 
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{icon_url}">
+        <link rel="shortcut icon" href="{icon_url}">
         <meta name="apple-mobile-web-app-title" content="Battery BM">
         <meta name="application-name" content="Battery BM">
-        <meta name="theme-color" content="#1E1E2E">
+        <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="theme-color" content="#1E1E2E">
+        <title>Battery BM</title>
     </head>
 """, unsafe_allow_html=True)
 
@@ -217,4 +225,4 @@ with tab4:
 
 st.sidebar.image("battery_bm_icon.png", width=100)
 st.sidebar.title("Battery BM")
-st.sidebar.caption("Ver 5.3 (PWA Ready)")
+st.sidebar.caption("Ver 5.4 (Cache Busting Applied)")
