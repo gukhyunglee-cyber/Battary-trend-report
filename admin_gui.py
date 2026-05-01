@@ -88,16 +88,24 @@ st.markdown("""
         padding: 0.5rem !important;
         max-width: 100% !important;
     }
-    /* 팝업 버튼 내부 텍스트만 좌측 정렬 */
+    /* 팝업 버튼: 내부 flex 컨테이너까지 좌측 정렬 강제 */
     div[data-testid="stPopover"] > button {
         text-align: left !important;
         justify-content: flex-start !important;
         width: 100% !important;
-        padding-left: 10px !important;
     }
-    div[data-testid="stPopover"] p {
+    div[data-testid="stPopover"] > button > div {
+        justify-content: flex-start !important;
         text-align: left !important;
-        margin: 0 !important;
+        width: 100% !important;
+    }
+    div[data-testid="stPopover"] > button > div > div:first-child {
+        flex-grow: 1 !important;
+        text-align: left !important;
+    }
+    div[data-testid="stPopover"] p,
+    div[data-testid="stPopover"] span {
+        text-align: left !important;
     }
     </style>
     """, unsafe_allow_html=True)
