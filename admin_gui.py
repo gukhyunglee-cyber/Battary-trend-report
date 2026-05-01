@@ -77,11 +77,24 @@ def do_delete():
 
 
 # Hidden delete trigger input — rendered first so callback runs before config read
-st.markdown(
-    '<style>[data-testid="stTextInput"]:has(input[placeholder="__bd__"])'
-    '{display:none!important;height:0!important;margin:0!important;padding:0!important}</style>',
-    unsafe_allow_html=True,
-)
+# Positioned off-screen (not display:none) to remain focusable for JS dispatch
+st.markdown("""
+<style>
+[data-testid="stTextInput"]:has(input[placeholder="__bd__"]),
+div:has(> [data-testid="stTextInput"] input[placeholder="__bd__"]) {
+    position: fixed !important;
+    top: 0 !important;
+    left: -2000px !important;
+    width: 100px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    z-index: -1 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 st.text_input("", key="del_target", on_change=do_delete,
               label_visibility="collapsed", placeholder="__bd__")
 
@@ -366,17 +379,50 @@ components.html("""
     }
 
     /* ── Trigger delete via hidden Streamlit input ── */
+    function commitDelete(value) {
+        const input = p.querySelector('input[placeholder="__bd__"]');
+        if (!input) {
+            console.error('[battery-admin] hidden delete input not found');
+            return false;
+        }
+
+        // Focus first so events are bound to it
+        try { input.focus(); } catch (_) {}
+
+        // React-controlled input: bypass via native value setter
+        const setter = Object.getOwnPropertyDescriptor(
+            window.parent.HTMLInputElement.prototype, 'value'
+        ).set;
+        setter.call(input, value);
+
+        // Notify React
+        input.dispatchEvent(new Event('input',  { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Streamlit text_input commits on Enter — fire full key sequence
+        ['keydown', 'keypress', 'keyup'].forEach(type => {
+            input.dispatchEvent(new KeyboardEvent(type, {
+                key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+                bubbles: true, cancelable: true,
+            }));
+        });
+
+        // Blur to commit (Streamlit also commits on blur)
+        try { input.blur(); } catch (_) {}
+        return true;
+    }
+
     item.addEventListener('click', () => {
         if (!pendingId) return;
-        const input = p.querySelector('input[placeholder="__bd__"]');
-        if (input) {
-            const setter = Object.getOwnPropertyDescriptor(
-                window.parent.HTMLInputElement.prototype, 'value'
-            ).set;
-            setter.call(input, pendingId);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        hideMenu();
+        // Visual feedback
+        item.textContent = '⏳  처리 중...';
+        item.style.color = '#888';
+        commitDelete(pendingId);
+        setTimeout(() => {
+            item.textContent = '🗑  삭제';
+            item.style.color = '#FF5555';
+            hideMenu();
+        }, 250);
     });
 
     /* ── Dismiss on outside click/touch ── */
@@ -443,6 +489,7 @@ components.html("""
 
     new MutationObserver(setup).observe(p.body, { childList: true, subtree: true });
     setup();
+    [100, 300, 800, 1500].forEach(t => setTimeout(setup, t));
 })();
 </script>
 """, height=0)
