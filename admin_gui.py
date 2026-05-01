@@ -18,10 +18,6 @@ st.markdown("""
     .main .block-container { padding: 1rem 0.5rem !important; }
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
-    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
-        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) button { font-size: 0.7rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -40,39 +36,28 @@ def load_config():
     except: return {}
 
 def update_workflow_schedule(new_day_kst, new_time_kst):
-    """KST 요일/시간을 UTC cron으로 변환하여 workflow yml 업데이트"""
     g, rn = get_github()
     if not g: return False
     try:
         days_map = {"월": 1, "화": 2, "수": 3, "목": 4, "금": 5, "토": 6, "일": 0}
         kst_day_num = days_map.get(new_day_kst, 1)
-        
-        # KST(UTC+9) -> UTC 변환
         utc_hour = (new_time_kst.hour - 9) % 24
-        # 시간이 9시 이전이면 요일이 하루 전으로 넘어감
         day_offset = -1 if new_time_kst.hour < 9 else 0
         utc_day = (kst_day_num + day_offset) % 7
-        
         new_cron = f"{new_time_kst.minute} {utc_hour} * * {utc_day}"
-        
         repo = g.get_repo(rn)
         yml_path = ".github/workflows/weekly_report.yml"
         contents = repo.get_contents(yml_path)
         lines = contents.decoded_content.decode("utf-8").split("\n")
-        
         new_lines = []
         for line in lines:
             if "cron:" in line:
                 indent = line.split("- cron:")[0]
                 new_lines.append(f'{indent}- cron: \'{new_cron}\'  # KST {new_day_kst}요일 {new_time_kst.strftime("%H:%M")} (Auto-updated)')
-            else:
-                new_lines.append(line)
-        
+            else: new_lines.append(line)
         repo.update_file(yml_path, f"Update schedule to {new_day_kst} {new_time_kst}", "\n".join(new_lines), contents.sha)
         return True
-    except Exception as e:
-        st.error(f"Workflow 업데이트 실패: {e}")
-        return False
+    except: return False
 
 def save_config(cfg, new_day=None, new_time=None):
     g, rn = get_github()
@@ -81,24 +66,23 @@ def save_config(cfg, new_day=None, new_time=None):
         repo = g.get_repo(rn)
         c = repo.get_contents("config.json")
         repo.update_file(c.path, "Update config", json.dumps(cfg, indent=2, ensure_ascii=False), c.sha)
-        if new_day and new_time:
-            update_workflow_schedule(new_day, new_time)
+        if new_day and new_time: update_workflow_schedule(new_day, new_time)
         return True
     except: return False
 
-def get_file_content(filename):
+def get_file_data(filename, is_binary=False):
     g, rn = get_github()
-    if not g: return "GitHub 연동 오류"
+    if not g: return None
     try:
         repo = g.get_repo(rn)
-        return repo.get_contents(filename).decoded_content.decode("utf-8")
-    except: return "파일이 없습니다."
+        content = repo.get_contents(filename)
+        if is_binary: return content.decoded_content
+        return content.decoded_content.decode("utf-8")
+    except: return None
 
 # --- State ---
-if "config" not in st.session_state:
-    st.session_state.config = load_config()
-if "current_report" not in st.session_state:
-    st.session_state.current_report = ""
+if "config" not in st.session_state: st.session_state.config = load_config()
+if "current_report" not in st.session_state: st.session_state.current_report = ""
 
 conf = st.session_state.config
 
@@ -136,57 +120,64 @@ with tab2:
     sites = conf.get("TARGET_SITES", [])
     for i, s in enumerate(sites):
         with st.expander(f"🌐 {s['name']}"):
-            st.caption(s['url'])
-            if st.button("❌ 삭제", key=f"del_s_{i}", type="primary", use_container_width=True):
+            st.caption(s['url']); if st.button("❌ 삭제", key=f"del_s_{i}", type="primary", use_container_width=True):
                 sites.pop(i); conf["TARGET_SITES"] = sites; st.rerun()
 
 with tab3:
     st.subheader("시스템 설정")
     key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
     conf["GEMINI_API_KEY"] = key
-    
     st.markdown("---")
     st.markdown("📅 **정기 리포트 발송 설정**")
-    
-    # 요일 및 시간 설정
     days_list = ["월", "화", "수", "목", "금", "토", "일"]
-    current_day = conf.get("SCHEDULE_DAY", "월")
-    new_day = st.selectbox("발송 요일 (KST)", options=days_list, index=days_list.index(current_day))
+    new_day = st.selectbox("발송 요일 (KST)", options=days_list, index=days_list.index(conf.get("SCHEDULE_DAY", "월")))
     conf["SCHEDULE_DAY"] = new_day
-
-    current_time_str = conf.get("SCHEDULE_TIME", "07:00")
-    h, m = map(int, current_time_str.split(":"))
+    h, m = map(int, conf.get("SCHEDULE_TIME", "07:00").split(":"))
     new_time = st.time_input("발송 시간 (KST)", value=time(h, m))
     conf["SCHEDULE_TIME"] = new_time.strftime("%H:%M")
     
-    st.caption(f"※ 저장 시 **매주 {new_day}요일 {conf['SCHEDULE_TIME']}**로 예약됩니다.")
-
     st.markdown("### 🚀 액션")
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
         if st.button("실행", key="btn_run", use_container_width=True):
             g, rn = get_github()
             if g:
-                try: 
-                    g.get_repo(rn).get_workflow("weekly_report.yml").create_dispatch("main")
-                    st.success("OK")
+                try: g.get_repo(rn).get_workflow("weekly_report.yml").create_dispatch("main"); st.success("OK")
                 except: st.error("ERR")
     with sc2:
         if st.button("저장", key="btn_save", use_container_width=True):
-            if save_config(conf, new_day, new_time): st.success("스케줄 동기화 완료!")
+            if save_config(conf, new_day, new_time): st.success("OK")
     with sc3:
         if st.button("동기", key="btn_sync", use_container_width=True):
             del st.session_state.config; st.rerun()
 
 with tab4:
     st.subheader("📝 최근 발신 리포트")
+    
+    # 1. 텍스트 리포트 확인
+    st.markdown("#### 📄 텍스트 요약")
     report_type = st.radio("종류 선택", ["주간 분석 요약", "트렌드 리포트"], horizontal=True)
     target_file = "weekly_diff_report.md" if report_type == "주간 분석 요약" else "trend_report.md"
     if st.button("리포트 불러오기"):
-        with st.spinner("가져오는 중..."): st.session_state.current_report = get_file_content(target_file)
+        with st.spinner("가져오는 중..."): st.session_state.current_report = get_file_data(target_file)
     if st.session_state.current_report:
         st.markdown("---")
         st.markdown(st.session_state.current_report)
+    
+    # 2. PPT 다운로드 섹션 추가
+    st.markdown("---")
+    st.markdown("#### 📊 PPT 리포트 다운로드")
+    p1, p2 = st.columns(2)
+    with p1:
+        if st.button("AI 분석 PPT 준비"):
+            data = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
+            if data: st.download_button("📥 AI PPT 다운로드", data, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+            else: st.error("파일이 없습니다.")
+    with p2:
+        if st.button("기본 PPT 준비"):
+            data = get_file_data("battery_trend_report.pptx", is_binary=True)
+            if data: st.download_button("📥 기본 PPT 다운로드", data, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+            else: st.error("파일이 없습니다.")
 
-st.sidebar.caption("Ver 4.1 (Schedule Day Added)")
+st.sidebar.caption("Ver 4.2 (PPT Download Added)")
 st.sidebar.write(f"발송 예약: {conf.get('SCHEDULE_DAY', '월')}요일 {conf.get('SCHEDULE_TIME', '07:00')}")
