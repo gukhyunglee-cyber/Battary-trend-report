@@ -39,14 +39,21 @@ def load_config():
         return json.loads(repo.get_contents("config.json").decoded_content.decode("utf-8"))
     except: return {}
 
-def update_workflow_schedule(new_time_kst):
-    """KST 시간을 UTC cron으로 변환하여 workflow yml 업데이트"""
+def update_workflow_schedule(new_day_kst, new_time_kst):
+    """KST 요일/시간을 UTC cron으로 변환하여 workflow yml 업데이트"""
     g, rn = get_github()
     if not g: return False
     try:
+        days_map = {"월": 1, "화": 2, "수": 3, "목": 4, "금": 5, "토": 6, "일": 0}
+        kst_day_num = days_map.get(new_day_kst, 1)
+        
         # KST(UTC+9) -> UTC 변환
         utc_hour = (new_time_kst.hour - 9) % 24
-        new_cron = f"{new_time_kst.minute} {utc_hour} * * 0" # 매주 일요일(UTC) -> 월요일(KST) 발송
+        # 시간이 9시 이전이면 요일이 하루 전으로 넘어감
+        day_offset = -1 if new_time_kst.hour < 9 else 0
+        utc_day = (kst_day_num + day_offset) % 7
+        
+        new_cron = f"{new_time_kst.minute} {utc_hour} * * {utc_day}"
         
         repo = g.get_repo(rn)
         yml_path = ".github/workflows/weekly_report.yml"
@@ -57,28 +64,25 @@ def update_workflow_schedule(new_time_kst):
         for line in lines:
             if "cron:" in line:
                 indent = line.split("- cron:")[0]
-                new_lines.append(f'{indent}- cron: \'{new_cron}\'  # KST {new_time_kst.strftime("%H:%M")} (Auto-updated)')
+                new_lines.append(f'{indent}- cron: \'{new_cron}\'  # KST {new_day_kst}요일 {new_time_kst.strftime("%H:%M")} (Auto-updated)')
             else:
                 new_lines.append(line)
         
-        repo.update_file(yml_path, f"Update schedule to {new_time_kst}", "\n".join(new_lines), contents.sha)
+        repo.update_file(yml_path, f"Update schedule to {new_day_kst} {new_time_kst}", "\n".join(new_lines), contents.sha)
         return True
     except Exception as e:
         st.error(f"Workflow 업데이트 실패: {e}")
         return False
 
-def save_config(cfg, new_time=None):
+def save_config(cfg, new_day=None, new_time=None):
     g, rn = get_github()
     if not g: return False
     try:
         repo = g.get_repo(rn)
-        # 1. config.json 저장
         c = repo.get_contents("config.json")
         repo.update_file(c.path, "Update config", json.dumps(cfg, indent=2, ensure_ascii=False), c.sha)
-        
-        # 2. 발송 시간 변경 시 workflow 업데이트
-        if new_time:
-            update_workflow_schedule(new_time)
+        if new_day and new_time:
+            update_workflow_schedule(new_day, new_time)
         return True
     except: return False
 
@@ -111,8 +115,7 @@ with tab1:
         if st.button("추가", key="add_email", type="primary", use_container_width=True):
             if "@" in email:
                 rl = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
-                rl.append(email.strip()); conf["EMAIL_RECIPIENT"] = ", ".join(rl)
-                st.rerun()
+                rl.append(email.strip()); conf["EMAIL_RECIPIENT"] = ", ".join(rl); st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     for i, r in enumerate(recipients):
@@ -142,14 +145,21 @@ with tab3:
     key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
     conf["GEMINI_API_KEY"] = key
     
-    # 정기 발송 시간 설정 추가
     st.markdown("---")
     st.markdown("📅 **정기 리포트 발송 설정**")
+    
+    # 요일 및 시간 설정
+    days_list = ["월", "화", "수", "목", "금", "토", "일"]
+    current_day = conf.get("SCHEDULE_DAY", "월")
+    new_day = st.selectbox("발송 요일 (KST)", options=days_list, index=days_list.index(current_day))
+    conf["SCHEDULE_DAY"] = new_day
+
     current_time_str = conf.get("SCHEDULE_TIME", "07:00")
     h, m = map(int, current_time_str.split(":"))
-    new_time = st.time_input("매주 월요일 발송 시간 (KST)", value=time(h, m))
+    new_time = st.time_input("발송 시간 (KST)", value=time(h, m))
     conf["SCHEDULE_TIME"] = new_time.strftime("%H:%M")
-    st.caption("※ 시간 저장 시 GitHub 발송 스케줄이 즉시 변경됩니다.")
+    
+    st.caption(f"※ 저장 시 **매주 {new_day}요일 {conf['SCHEDULE_TIME']}**로 예약됩니다.")
 
     st.markdown("### 🚀 액션")
     sc1, sc2, sc3 = st.columns(3)
@@ -163,7 +173,7 @@ with tab3:
                 except: st.error("ERR")
     with sc2:
         if st.button("저장", key="btn_save", use_container_width=True):
-            if save_config(conf, new_time): st.success("저장&스케줄 변경 완료!")
+            if save_config(conf, new_day, new_time): st.success("스케줄 동기화 완료!")
     with sc3:
         if st.button("동기", key="btn_sync", use_container_width=True):
             del st.session_state.config; st.rerun()
@@ -178,7 +188,5 @@ with tab4:
         st.markdown("---")
         st.markdown(st.session_state.current_report)
 
-st.sidebar.caption("Ver 4.0 (Schedule Sync Added)")
-st.sidebar.write(f"수신인: {len(recipients)}명")
-st.sidebar.write(f"사이트: {len(sites)}개")
-st.sidebar.write(f"발송 시간: 월요일 {conf.get('SCHEDULE_TIME', '07:00')} (KST)")
+st.sidebar.caption("Ver 4.1 (Schedule Day Added)")
+st.sidebar.write(f"발송 예약: {conf.get('SCHEDULE_DAY', '월')}요일 {conf.get('SCHEDULE_TIME', '07:00')}")
