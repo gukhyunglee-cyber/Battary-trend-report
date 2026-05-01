@@ -86,16 +86,22 @@ tab1, tab2, tab3 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정"]
 # 모바일에서 컬럼 가로 배치 강제
 st.markdown("""
     <style>
+    /* 가로 스크롤 완전 차단 */
+    html, body, [data-testid="stAppViewContainer"], .main {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
     div[data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: center !important;
+        overflow: hidden !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # --- Tab 1: Recipients ---
 with tab1:
-    header_col, add_col = st.columns([2, 1])
+    header_col, add_col = st.columns([3, 1])
     header_col.subheader("이메일 수신인")
     with add_col:
         with st.popover("➕"):
@@ -121,7 +127,7 @@ with tab1:
 
 # --- Tab 2: Target Sites ---
 with tab2:
-    header_col2, add_col2 = st.columns([2, 1])
+    header_col2, add_col2 = st.columns([3, 1])
     header_col2.subheader("수집 사이트")
     with add_col2:
         with st.popover("➕"):
