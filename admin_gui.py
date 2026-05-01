@@ -6,35 +6,41 @@ from datetime import datetime
 # Page config
 st.set_page_config(page_title="Battery Admin", page_icon="⚡", layout="centered")
 
-# --- CSS: Mobile & Layout Optimization ---
+# --- CSS: Extreme Layout Stabilization ---
 st.markdown("""
 <style>
-    /* 1. 강력한 가로 스크롤 차단 */
+    /* 1. 전역 가로 스크롤 절대 차단 */
     html, body, [data-testid="stAppViewContainer"], .main { 
-        padding: 0.5rem !important; 
         max-width: 100vw !important;
         overflow-x: hidden !important;
-        position: relative;
+        position: fixed; /* 화면 고정 */
+        width: 100%;
+        height: 100%;
+    }
+    .main .block-container { 
+        padding: 1rem 0.5rem !important; 
+        max-width: 100% !important;
+        overflow-y: auto !important; /* 세로 스크롤만 허용 */
+        height: 100vh;
     }
     
-    /* 2. 제목 & ➕ 버튼 밀착 (Tab 1, 2) */
-    div[data-testid="stHorizontalBlock"]:has(div.custom-header) {
-        flex-wrap: nowrap !important;
+    /* 2. 헤더 & ➕ 버튼 강제 밀착 */
+    .header-container {
+        display: flex !important;
+        flex-direction: row !important;
         align-items: center !important;
+        gap: 10px !important;
+        margin-bottom: 10px !important;
         width: 100% !important;
-        gap: 0px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(div.custom-header) > div[data-testid="column"] {
-        min-width: 0 !important;
     }
     .custom-header {
         font-size: 1.1rem !important;
         font-weight: 800 !important;
         white-space: nowrap !important;
-        margin-right: 5px !important;
+        color: #E0E0F0 !important;
     }
 
-    /* 3. 설정 버튼 (Tab 3) - 가로 한 줄 강제 */
+    /* 3. 설정 버튼 (Tab 3) 압축 */
     div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
         display: flex !important;
         flex-wrap: nowrap !important;
@@ -44,17 +50,11 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div[data-testid="column"] {
         flex: 1 1 0% !important;
         min-width: 0 !important;
-        max-width: 33% !important;
     }
     div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) button {
-        width: 100% !important;
         padding: 4px 0 !important;
         font-size: 0.7rem !important;
-        white-space: nowrap !important;
     }
-
-    /* 4. 탭 스타일 보정 */
-    button[data-baseweb="tab"] { font-size: 0.8rem !important; padding: 10px 5px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -88,32 +88,36 @@ def get_file_content(filename):
     try:
         repo = g.get_repo(rn)
         return repo.get_contents(filename).decoded_content.decode("utf-8")
-    except: return "파일을 찾을 수 없거나 아직 생성되지 않았습니다."
+    except: return "파일 내용을 불러올 수 없습니다."
+
+# --- App State ---
+if "config" not in st.session_state:
+    with st.spinner("Loading..."): st.session_state.config = load_config()
+if "current_report" not in st.session_state:
+    st.session_state.current_report = ""
+
+conf = st.session_state.config
 
 # --- App Content ---
 st.title("⚡ Battery Admin")
 st.caption("모바일 관리 센터")
 
-if "config" not in st.session_state:
-    with st.spinner("Loading..."): st.session_state.config = load_config()
-conf = st.session_state.config
-
 tab1, tab2, tab3, tab4 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정", "📝 리포트"])
 
 # --- Tab 1: Recipients ---
 with tab1:
-    c1, c2, c3 = st.columns([3, 2, 5])
-    with c1: st.markdown('<div class="custom-header">수신인</div>', unsafe_allow_html=True)
-    with c2:
-        with st.popover("➕"):
-            email = st.text_input("이메일")
-            if st.button("추가", key="add_email", type="primary", use_container_width=True):
-                if "@" in email:
-                    rl = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
-                    rl.append(email.strip())
-                    conf["EMAIL_RECIPIENT"] = ", ".join(rl)
-                    st.session_state.config = conf
-                    st.rerun()
+    # Use HTML for better alignment control
+    st.markdown('<div class="header-container"><div class="custom-header">수신인</div>', unsafe_allow_html=True)
+    with st.popover("➕"):
+        email = st.text_input("이메일")
+        if st.button("추가", key="add_email", type="primary", use_container_width=True):
+            if "@" in email:
+                rl = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
+                rl.append(email.strip())
+                conf["EMAIL_RECIPIENT"] = ", ".join(rl)
+                st.session_state.config = conf
+                st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
     
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     for i, r in enumerate(recipients):
@@ -125,19 +129,18 @@ with tab1:
 
 # --- Tab 2: Sites ---
 with tab2:
-    c1, c2, c3 = st.columns([3, 2, 5])
-    with c1: st.markdown('<div class="custom-header">사이트</div>', unsafe_allow_html=True)
-    with c2:
-        with st.popover("➕"):
-            with st.form("add_site"):
-                n = st.text_input("이름")
-                u = st.text_input("URL")
-                cat = st.selectbox("분류", ["업계 미디어", "설비업체", "기타"])
-                if st.form_submit_button("등록", use_container_width=True):
-                    sl = conf.get("TARGET_SITES", [])
-                    sl.append({"name": n, "url": u, "category": cat})
-                    conf["TARGET_SITES"] = sl
-                    st.rerun()
+    st.markdown('<div class="header-container"><div class="custom-header">사이트</div>', unsafe_allow_html=True)
+    with st.popover("➕"):
+        with st.form("add_site"):
+            n = st.text_input("이름")
+            u = st.text_input("URL")
+            cat = st.selectbox("분류", ["업계 미디어", "설비업체", "기타"])
+            if st.form_submit_button("등록", use_container_width=True):
+                sl = conf.get("TARGET_SITES", [])
+                sl.append({"name": n, "url": u, "category": cat})
+                conf["TARGET_SITES"] = sl
+                st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     sites = conf.get("TARGET_SITES", [])
     for i, s in enumerate(sites):
@@ -179,11 +182,13 @@ with tab4:
     target_file = "weekly_diff_report.md" if report_type == "주간 분석 요약" else "trend_report.md"
     
     if st.button("리포트 불러오기"):
-        with st.spinner("내용을 가져오는 중..."):
-            content = get_file_content(target_file)
-            st.markdown("---")
-            st.markdown(content)
+        with st.spinner("가져오는 중..."):
+            st.session_state.current_report = get_file_content(target_file)
+    
+    if st.session_state.current_report:
+        st.markdown("---")
+        st.markdown(st.session_state.current_report)
 
-st.sidebar.caption("Ver 3.5 (Report View Added)")
+st.sidebar.caption("Ver 3.6 (Stable UI)")
 st.sidebar.write(f"수신인: {len(recipients)}명")
 st.sidebar.write(f"사이트: {len(sites)}개")
