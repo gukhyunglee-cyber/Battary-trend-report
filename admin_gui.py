@@ -18,6 +18,13 @@ st.markdown("""
     .main .block-container { padding: 1rem 0.5rem !important; }
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
+    .report-box { 
+        background-color: #1E1E2E; 
+        padding: 15px; 
+        border-radius: 10px; 
+        border: 1px solid #3E3E4E;
+        margin-bottom: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,9 +129,7 @@ with tab2:
         with st.expander(f"🌐 {s['name']}"):
             st.caption(s['url'])
             if st.button("❌ 삭제", key=f"del_s_{i}", type="primary", use_container_width=True):
-                sites.pop(i)
-                conf["TARGET_SITES"] = sites
-                st.rerun()
+                sites.pop(i); conf["TARGET_SITES"] = sites; st.rerun()
 
 with tab3:
     st.subheader("시스템 설정")
@@ -155,32 +160,35 @@ with tab3:
             del st.session_state.config; st.rerun()
 
 with tab4:
-    st.subheader("📝 최근 발신 리포트")
+    st.subheader("📝 리포트 센터")
     
-    # 1. 텍스트 리포트 확인
-    st.markdown("#### 📄 텍스트 요약")
-    report_type = st.radio("종류 선택", ["주간 분석 요약", "트렌드 리포트"], horizontal=True)
-    target_file = "weekly_diff_report.md" if report_type == "주간 분석 요약" else "trend_report.md"
-    if st.button("리포트 불러오기"):
-        with st.spinner("가져오는 중..."): st.session_state.current_report = get_file_data(target_file)
-    if st.session_state.current_report:
-        st.markdown("---")
-        st.markdown(st.session_state.current_report)
-    
-    # 2. PPT 다운로드 섹션 추가
-    st.markdown("---")
+    # 1. PPT 다운로드 (최상단 배치)
     st.markdown("#### 📊 PPT 리포트 다운로드")
     p1, p2 = st.columns(2)
     with p1:
-        if st.button("AI 분석 PPT 준비"):
+        if st.button("AI PPT 준비", use_container_width=True):
             data = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
-            if data: st.download_button("📥 AI PPT 다운로드", data, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
-            else: st.error("파일이 없습니다.")
+            if data: st.download_button("📥 AI PPT 받기", data, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
     with p2:
-        if st.button("기본 PPT 준비"):
+        if st.button("기본 PPT 준비", use_container_width=True):
             data = get_file_data("battery_trend_report.pptx", is_binary=True)
-            if data: st.download_button("📥 기본 PPT 다운로드", data, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
-            else: st.error("파일이 없습니다.")
+            if data: st.download_button("📥 기본 PPT 받기", data, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
-st.sidebar.caption("Ver 4.2 (PPT Download Added)")
+    st.markdown("---")
+    
+    # 2. 리포트 내용 미리보기
+    st.markdown("#### 👁️ 내용 미리보기 (PPT/메일 본문)")
+    report_type = st.radio("종류", ["주간 분석 요약", "트렌드 리포트 (PPT 내용)"], horizontal=True)
+    target_file = "weekly_diff_report.md" if report_type == "주간 분석 요약" else "trend_report.md"
+    
+    if st.button("내용 불러오기", type="primary", use_container_width=True):
+        with st.spinner("가져오는 중..."):
+            st.session_state.current_report = get_file_data(target_file)
+    
+    if st.session_state.current_report:
+        st.markdown('<div class="report-box">', unsafe_allow_html=True)
+        st.markdown(st.session_state.current_report)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+st.sidebar.caption("Ver 4.3 (Visibility Improved)")
 st.sidebar.write(f"발송 예약: {conf.get('SCHEDULE_DAY', '월')}요일 {conf.get('SCHEDULE_TIME', '07:00')}")
