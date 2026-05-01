@@ -190,10 +190,9 @@ with tab4:
 
     st.markdown("---")
     st.markdown('<div class="header-container"><div class="custom-header">👁️ 내용 미리보기</div></div>', unsafe_allow_html=True)
-    r_type = st.radio("종류", ["주간 분석 요약", "트렌드 리포트 (PPT 내용)", "📧 이메일 본문"], horizontal=True)
+    r_type = st.radio("종류", ["주간 분석 요약", "트렌드 리포트 (PPT 내용)"], horizontal=True)
     if st.button("내용 불러오기", type="primary", use_container_width=True):
         if r_type == "주간 분석 요약": f = "weekly_diff_report.md"
-        elif r_type == "📧 이메일 본문": f = "email_preview.md"
         else: f = "trend_report.md"
         st.session_state.current_report = get_file_data(f)
     if st.session_state.current_report:
