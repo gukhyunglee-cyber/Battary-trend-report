@@ -94,27 +94,29 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 0px !important; /* 컬럼 간 간격 제거 */
     }
-    /* 모든 컬럼을 왼쪽으로 밀착 */
-    div[data-testid="column"] {
-        flex: 0 1 auto !important;
-        min-width: 0px !important;
-        width: auto !important;
+    /* 제목 글자 쪼개짐 방지 */
+    .nowrap-text {
+        white-space: nowrap !important;
+        margin-right: 10px !important;
+    }
+    /* 두 번째 컬럼 내용을 왼쪽으로 정렬 */
+    div[data-testid="column"]:nth-of-type(2) {
+        display: flex !important;
+        justify-content: flex-start !important;
     }
     /* 버튼 패딩 축소 */
     div[data-testid="stPopover"] > button {
-        padding: 2px 8px !important;
-        min-width: 40px !important;
+        padding: 2px 10px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # --- Tab 1: Recipients ---
 with tab1:
-    header_col, add_col = st.columns([1, 10]) # 비율을 역전시키거나 작게 설정
+    header_col, add_col = st.columns([1, 4])
     with header_col:
-        st.markdown("### 수신인")
+        st.markdown('<div class="nowrap-text">### 수신인</div>', unsafe_allow_html=True)
     with add_col:
         with st.popover("➕"):
             new_email = st.text_input("이메일 입력")
@@ -139,9 +141,9 @@ with tab1:
 
 # --- Tab 2: Target Sites ---
 with tab2:
-    header_col2, add_col2 = st.columns([1, 10])
+    header_col2, add_col2 = st.columns([1, 4])
     with header_col2:
-        st.markdown("### 사이트")
+        st.markdown('<div class="nowrap-text">### 사이트</div>', unsafe_allow_html=True)
     with add_col2:
         with st.popover("➕"):
             with st.form("add_site_form_v5"):
