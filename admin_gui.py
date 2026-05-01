@@ -89,9 +89,16 @@ st.markdown("""
         justify-content: flex-start !important;
         align-items: center !important;
     }
-    /* 버튼 패딩 축소 */
-    div[data-testid="stPopover"] > button {
-        padding: 2px 10px !important;
+    /* 버튼 패딩 축소 및 폰트 크기 조정 */
+    div[data-testid="stPopover"] > button, 
+    div[data-testid="column"] button {
+        padding: 2px 5px !important;
+        font-size: 0.75rem !important;
+        white-space: nowrap !important;
+    }
+    /* 설정 탭 버튼 전용 압축 */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 5px !important;
     }
     </style>
     """, unsafe_allow_html=True)
