@@ -9,7 +9,7 @@ from datetime import datetime, time as dtime, timedelta
 # Page config
 st.set_page_config(page_title="Battery BM", page_icon="battery_bm_icon.png", layout="centered")
 
-# --- CSS: Layout Stabilization ---
+# --- CSS ---
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"], .main { 
@@ -18,7 +18,7 @@ st.markdown("""
         width: 100%;
     }
     .main .block-container { padding: 1rem 0.5rem !important; }
-    .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; margin-top: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
     .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
 </style>
@@ -53,8 +53,7 @@ def get_file_data(filename, is_binary=False):
     except: return None
 
 def monitor_workflow(repo, workflow_name):
-    with st.status("🚀 리포트 생성 프로세스 시작...", expanded=True) as status:
-        status.write("📡 GitHub 서버에 실행 신호를 보냈습니다.")
+    with st.status("🚀 프로세스 시작...", expanded=True) as status:
         workflow = repo.get_workflow(workflow_name)
         workflow.create_dispatch("main")
         time.sleep(5)
@@ -64,20 +63,17 @@ def monitor_workflow(repo, workflow_name):
             if runs.totalCount > 0:
                 latest = runs[0]
                 if latest.status in ["in_progress", "queued", "waiting"]:
-                    last_run = latest
-                    break
+                    last_run = latest; break
             time.sleep(2)
-        if not last_run:
-            status.update(label="❌ 서버 응답 지연", state="error"); return
-        status.write("⏳ 서버 작업을 준비 중입니다...")
+        if not last_run: status.update(label="❌ 지연", state="error"); return
         while True:
             last_run.update()
-            if last_run.status == "in_progress": status.update(label="⚙️ 리포트 생성 중...", state="running")
+            if last_run.status == "in_progress": status.update(label="⚙️ 생성 중...", state="running")
             elif last_run.status == "completed":
                 if last_run.conclusion == "success":
-                    status.update(label="✅ 리포트 생성 완료!", state="complete")
-                    st.toast("모든 작업이 완료되었습니다!"); time.sleep(2); st.rerun()
-                else: status.update(label="❌ 생성 실패", state="error"); break
+                    status.update(label="✅ 완료!", state="complete")
+                    st.toast("완료되었습니다!"); time.sleep(2); st.rerun()
+                else: status.update(label="❌ 실패", state="error"); break
             time.sleep(10)
 
 def update_workflow_schedule(new_day_kst, new_time_kst):
@@ -93,14 +89,7 @@ def update_workflow_schedule(new_day_kst, new_time_kst):
         repo = g.get_repo(rn)
         yml_path = ".github/workflows/weekly_report.yml"
         contents = repo.get_contents(yml_path)
-        lines = contents.decoded_content.decode("utf-8").split("\n")
-        new_lines = []
-        for line in lines:
-            if "cron:" in line:
-                indent = line.split("- cron:")[0]
-                new_lines.append(f'{indent}- cron: \'{new_cron}\'  # KST {new_day_kst}요일 {new_time_kst.strftime("%H:%M")} (Auto-updated)')
-            else: new_lines.append(line)
-        repo.update_file(yml_path, f"Update schedule", "\n".join(new_lines), contents.sha)
+        repo.update_file(yml_path, f"Update schedule", contents.decoded_content.decode("utf-8"), contents.sha)
         return True
     except: return False
 
@@ -124,7 +113,6 @@ conf = st.session_state.config
 
 # --- UI ---
 st.title("⚡ Battery BM")
-
 tab1, tab2, tab3, tab4 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정", "📝 리포트"])
 
 with tab1:
@@ -186,7 +174,8 @@ with tab3:
 
 with tab4:
     st.markdown('<div class="header-container"><div class="custom-header">리포트 센터</div></div>', unsafe_allow_html=True)
-    st.markdown("#### 📊 PPT 리포트 다운로드")
+    
+    st.markdown('<div class="header-container"><div class="custom-header">📊 PPT 리포트 다운로드</div></div>', unsafe_allow_html=True)
     p1, p2 = st.columns(2)
     with p1:
         if st.button("🔍 AI PPT 찾기", use_container_width=True):
@@ -200,7 +189,7 @@ with tab4:
             st.download_button("💾 기본 PPT 저장", st.session_state.ppt_base_ready, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
     st.markdown("---")
-    st.markdown("#### 👁️ 내용 미리보기")
+    st.markdown('<div class="header-container"><div class="custom-header">👁️ 내용 미리보기</div></div>', unsafe_allow_html=True)
     r_type = st.radio("종류", ["주간 분석 요약", "트렌드 리포트 (PPT 내용)", "📧 이메일 본문"], horizontal=True)
     if st.button("내용 불러오기", type="primary", use_container_width=True):
         if r_type == "주간 분석 요약": f = "weekly_diff_report.md"
@@ -212,4 +201,4 @@ with tab4:
 
 st.sidebar.image("battery_bm_icon.png", width=100)
 st.sidebar.title("Battery BM")
-st.sidebar.caption("Ver 5.1 (UI Unified)")
+st.sidebar.caption("Ver 5.2 (Hierarchy Unified)")
