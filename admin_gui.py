@@ -85,7 +85,20 @@ tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Sites", "⚙️ Settings"])
 
 # --- Tab 1: Recipients ---
 with tab1:
-    st.subheader("Email Recipients")
+    header_col, add_col = st.columns([4, 1])
+    header_col.subheader("Email Recipients")
+    with add_col:
+        with st.popover("➕"):
+            new_email = st.text_input("Enter Email")
+            if st.button("Add Now", use_container_width=True, type="primary"):
+                if "@" in new_email:
+                    recipients_list = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
+                    recipients_list.append(new_email.strip())
+                    conf["EMAIL_RECIPIENT"] = ", ".join(recipients_list)
+                    st.session_state.config = conf
+                    st.success("Added!")
+                    st.rerun()
+
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
     
     for i, email in enumerate(recipients):
@@ -96,19 +109,25 @@ with tab1:
                 st.session_state.config = conf
                 st.rerun()
 
-    st.markdown("---")
-    with st.popover("➕ Add New Recipient", use_container_width=True):
-        new_email = st.text_input("Enter Email")
-        if st.button("Add Now", use_container_width=True, type="primary"):
-            if "@" in new_email:
-                recipients.append(new_email.strip())
-                conf["EMAIL_RECIPIENT"] = ", ".join(recipients)
-                st.success("Added!")
-                st.rerun()
-
 # --- Tab 2: Target Sites ---
 with tab2:
-    st.subheader("Collection Sites")
+    header_col2, add_col2 = st.columns([4, 1])
+    header_col2.subheader("Collection Sites")
+    with add_col2:
+        with st.popover("➕"):
+            with st.form("add_site_form_v5"):
+                s_name = st.text_input("Site Name")
+                s_url = st.text_input("URL")
+                s_cat = st.selectbox("Category", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
+                if st.form_submit_button("Register Site", use_container_width=True):
+                    if s_name and s_url:
+                        sites_list = conf.get("TARGET_SITES", [])
+                        sites_list.append({"name": s_name, "url": s_url, "category": s_cat})
+                        conf["TARGET_SITES"] = sites_list
+                        st.session_state.config = conf
+                        st.success("Registered!")
+                        st.rerun()
+
     sites = conf.get("TARGET_SITES", [])
     
     for i, site in enumerate(sites):
@@ -119,19 +138,6 @@ with tab2:
                 conf["TARGET_SITES"] = sites
                 st.session_state.config = conf
                 st.rerun()
-
-    st.markdown("---")
-    with st.popover("➕ Add New Site", use_container_width=True):
-        with st.form("add_site_form_v4"):
-            s_name = st.text_input("Site Name")
-            s_url = st.text_input("URL")
-            s_cat = st.selectbox("Category", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
-            if st.form_submit_button("Register Site", use_container_width=True):
-                if s_name and s_url:
-                    sites.append({"name": s_name, "url": s_url, "category": s_cat})
-                    conf["TARGET_SITES"] = sites
-                    st.success("Registered!")
-                    st.rerun()
 
 # --- Tab 3: Settings ---
 with tab3:
