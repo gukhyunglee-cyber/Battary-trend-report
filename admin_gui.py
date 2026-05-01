@@ -194,9 +194,9 @@ button[data-baseweb="tab"][aria-selected="true"] {
 [data-testid="stVerticalBlockBorderWrapper"] {
     background: rgba(255, 255, 255, 0.025) !important;
     border: 1px solid rgba(255, 255, 255, 0.065) !important;
-    border-radius: 11px !important;
-    padding: 0 6px !important;
-    margin-bottom: 5px !important;
+    border-radius: 9px !important;
+    padding: 0 5px !important;
+    margin-bottom: 3px !important;
     transition: border-color 0.15s !important;
 }
 [data-testid="stVerticalBlockBorderWrapper"]:hover {
@@ -208,17 +208,17 @@ button[data-baseweb="tab"][aria-selected="true"] {
     gap: 0 !important;
 }
 .item-main {
-    font-size: 0.82rem;
+    font-size: 0.79rem;
     color: #C4C4DC;
-    padding: 5px 0 3px;
+    padding: 3px 0 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .item-sub {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: #3C3C52;
-    padding-bottom: 5px;
+    padding-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -358,7 +358,7 @@ with tab1:
     hc, ac = st.columns([5, 2])
     with hc:
         st.markdown(
-            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">'
+            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'
             f'<span class="sec-label">수신 목록</span>'
             f'<span class="cnt-pill">{len(recipients)}</span>'
             f'</div>',
@@ -396,7 +396,7 @@ with tab2:
     hc2, ac2 = st.columns([5, 2])
     with hc2:
         st.markdown(
-            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">'
+            f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'
             f'<span class="sec-label">수집 사이트</span>'
             f'<span class="cnt-pill">{len(sites)}</span>'
             f'</div>',
