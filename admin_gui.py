@@ -5,8 +5,8 @@ from github import Github
 from datetime import datetime
 
 st.set_page_config(
-    page_title="⚡ Battery Admin",
-    page_icon="⚡",
+    page_title="\u26a1 Battery Admin",
+    page_icon="\u26a1",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -485,7 +485,7 @@ if "last_sync" in st.session_state:
 # ── App Header ────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="app-header">
-    <span class="app-logo">⚡</span>
+    <span class="app-logo">\u26a1</span>
     <span class="app-name">Battery Admin</span>
     <span class="app-ver">v2.9</span>
 </div>
