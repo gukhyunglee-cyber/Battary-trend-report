@@ -83,6 +83,16 @@ conf = st.session_state.config
 # Mobile-friendly Tabs
 tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Sites", "⚙️ Settings"])
 
+# 모바일에서 컬럼 가로 배치 강제
+st.markdown("""
+    <style>
+    div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # --- Tab 1: Recipients ---
 with tab1:
     header_col, add_col = st.columns([4, 1])
