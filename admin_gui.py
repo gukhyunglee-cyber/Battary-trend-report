@@ -68,11 +68,11 @@ def save_config_to_github(new_config):
 
 # --- UI Layout ---
 st.title("⚡ Battery Admin")
-st.caption("Mobile-optimized Control Center")
+st.caption("모바일 관리 센터")
 
 # Load initial data
 if "config" not in st.session_state:
-    with st.spinner("Syncing..."):
+    with st.spinner("동기화 중..."):
         st.session_state.config = load_config_from_github()
 
 if "delete_confirm" not in st.session_state:
@@ -81,7 +81,7 @@ if "delete_confirm" not in st.session_state:
 conf = st.session_state.config
 
 # Mobile-friendly Tabs
-tab1, tab2, tab3 = st.tabs(["👥 Recipients", "🌐 Sites", "⚙️ Settings"])
+tab1, tab2, tab3 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정"])
 
 # 모바일에서 컬럼 가로 배치 강제
 st.markdown("""
@@ -96,17 +96,17 @@ st.markdown("""
 # --- Tab 1: Recipients ---
 with tab1:
     header_col, add_col = st.columns([3, 1])
-    header_col.subheader("Email Recipients")
+    header_col.subheader("이메일 수신인")
     with add_col:
         with st.popover("➕"):
-            new_email = st.text_input("Enter Email")
-            if st.button("Add Now", use_container_width=True, type="primary"):
+            new_email = st.text_input("이메일 입력")
+            if st.button("추가", use_container_width=True, type="primary"):
                 if "@" in new_email:
                     recipients_list = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
                     recipients_list.append(new_email.strip())
                     conf["EMAIL_RECIPIENT"] = ", ".join(recipients_list)
                     st.session_state.config = conf
-                    st.success("Added!")
+                    st.success("추가 완료!")
                     st.rerun()
 
     recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
@@ -122,20 +122,20 @@ with tab1:
 # --- Tab 2: Target Sites ---
 with tab2:
     header_col2, add_col2 = st.columns([3, 1])
-    header_col2.subheader("Collection Sites")
+    header_col2.subheader("수집 사이트")
     with add_col2:
         with st.popover("➕"):
             with st.form("add_site_form_v5"):
-                s_name = st.text_input("Site Name")
-                s_url = st.text_input("URL")
-                s_cat = st.selectbox("Category", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
-                if st.form_submit_button("Register Site", use_container_width=True):
+                s_name = st.text_input("사이트 이름")
+                s_url = st.text_input("주소 (URL)")
+                s_cat = st.selectbox("분류", ["업계 미디어", "설비업체", "대한민국 미디어", "리서치", "중국 동향", "기타"])
+                if st.form_submit_button("등록하기", use_container_width=True):
                     if s_name and s_url:
                         sites_list = conf.get("TARGET_SITES", [])
                         sites_list.append({"name": s_name, "url": s_url, "category": s_cat})
                         conf["TARGET_SITES"] = sites_list
                         st.session_state.config = conf
-                        st.success("Registered!")
+                        st.success("등록 완료!")
                         st.rerun()
 
     sites = conf.get("TARGET_SITES", [])
@@ -149,24 +149,36 @@ with tab2:
                 st.session_state.config = conf
                 st.rerun()
 
-# --- Tab 3: Settings ---
+# --- Tab 3: 설정 ---
 with tab3:
-    st.subheader("System Settings")
+    st.subheader("시스템 설정")
     
     with st.container(border=True):
-        st.write("🔑 **API Configuration**")
+        st.write("🔑 **API 설정**")
         gemini_key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
         conf["GEMINI_API_KEY"] = gemini_key
     
-    st.markdown("### 🚀 Actions")
-    if st.button("💾 SAVE ALL TO GITHUB", type="primary", use_container_width=True):
-        with st.spinner("Uploading..."):
-            if save_config_to_github(conf):
-                st.success("Successfully Saved!")
-            else:
-                st.error("Save Failed")
+    st.markdown("### 🚀 실행")
+    if st.button("▶️ 지금 실행하기", type="primary", use_container_width=True):
+        g, repo_name = get_github_client()
+        if g:
+            try:
+                repo = g.get_repo(repo_name)
+                workflow = repo.get_workflow("weekly_report.yml")
+                workflow.create_dispatch("main")
+                st.success("✅ 리포트 생성이 시작되었습니다! (수 분 소요)")
+            except Exception as e:
+                st.error(f"실행 실패: {e}")
 
-    if st.button("🔄 Sync with Cloud", use_container_width=True):
+    st.markdown("---")
+    if st.button("💾 설정 저장 (GitHub)", type="primary", use_container_width=True):
+        with st.spinner("저장 중..."):
+            if save_config_to_github(conf):
+                st.success("✅ GitHub에 저장 완료!")
+            else:
+                st.error("저장 실패")
+
+    if st.button("🔄 클라우드 동기화", use_container_width=True):
         del st.session_state.config
         st.rerun()
 
@@ -174,9 +186,9 @@ with tab3:
 if st.session_state.delete_confirm:
     type, idx, val = st.session_state.delete_confirm
     with st.container(border=True):
-        st.error(f"**Confirm Deletion?**\n\nTarget: {val}")
+        st.error(f"**정말 삭제하시겠습니까?**\n\n대상: {val}")
         c1, c2 = st.columns(2)
-        if c1.button("YES", type="primary", use_container_width=True):
+        if c1.button("삭제", type="primary", use_container_width=True):
             if type == "email":
                 recipients = [r.strip() for r in conf.get("EMAIL_RECIPIENT", "").split(",") if r.strip()]
                 recipients.pop(idx)
@@ -187,7 +199,7 @@ if st.session_state.delete_confirm:
                 conf["TARGET_SITES"] = sites
             st.session_state.delete_confirm = None
             st.rerun()
-        if c2.button("NO", use_container_width=True):
+        if c2.button("취소", use_container_width=True):
             st.session_state.delete_confirm = None
             st.rerun()
 
