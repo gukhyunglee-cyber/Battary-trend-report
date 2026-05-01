@@ -1,8 +1,8 @@
 .venv/
 __pycache__/
 user_data/
-*.pptx
-*.png
+# *.pptx (리포트 조회를 위해 이그노어 해제)
+# *.png (리포트 조회를 위해 이그노어 해제)
 .env
 auth_secret_DO_NOT_COMMIT.txt
 user_data_archive.zip
