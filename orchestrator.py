@@ -86,6 +86,10 @@ def run_cloud_mode():
 
         # Email body
         email_body = analyzer.generate_email_body(combined_context, analysis)
+        if email_body:
+            with open("email_preview.md", "w", encoding="utf-8") as f:
+                f.write(email_body)
+            print("[AI] 이메일 본문 미리보기 저장 완료 (email_preview.md)")
 
     except Exception as e:
         print(f"[AI] Gemini API 오류: {e}")
