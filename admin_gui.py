@@ -95,7 +95,7 @@ st.markdown("""
 
 # --- Tab 1: Recipients ---
 with tab1:
-    header_col, add_col = st.columns([3, 1])
+    header_col, add_col = st.columns([2, 1])
     header_col.subheader("이메일 수신인")
     with add_col:
         with st.popover("➕"):
@@ -121,7 +121,7 @@ with tab1:
 
 # --- Tab 2: Target Sites ---
 with tab2:
-    header_col2, add_col2 = st.columns([3, 1])
+    header_col2, add_col2 = st.columns([2, 1])
     header_col2.subheader("수집 사이트")
     with add_col2:
         with st.popover("➕"):
