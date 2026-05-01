@@ -95,13 +95,15 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
     }
-    /* 제목 글자 쪼개짐 방지 */
-    .nowrap-text {
+    /* 제목 스타일 커스텀 */
+    .custom-header {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
         white-space: nowrap !important;
         margin-right: 10px !important;
     }
-    /* 두 번째 컬럼 내용을 왼쪽으로 정렬 */
-    div[data-testid="column"]:nth-of-type(2) {
+    /* 버튼 정렬 */
+    div[data-testid="column"] {
         display: flex !important;
         justify-content: flex-start !important;
     }
@@ -114,9 +116,9 @@ st.markdown("""
 
 # --- Tab 1: Recipients ---
 with tab1:
-    header_col, add_col = st.columns([1, 4])
+    header_col, add_col, empty_col = st.columns([2, 2, 6])
     with header_col:
-        st.markdown('<div class="nowrap-text">### 수신인</div>', unsafe_allow_html=True)
+        st.markdown('<div class="custom-header">수신인</div>', unsafe_allow_html=True)
     with add_col:
         with st.popover("➕"):
             new_email = st.text_input("이메일 입력")
@@ -141,9 +143,9 @@ with tab1:
 
 # --- Tab 2: Target Sites ---
 with tab2:
-    header_col2, add_col2 = st.columns([1, 4])
+    header_col2, add_col2, empty_col2 = st.columns([2, 2, 6])
     with header_col2:
-        st.markdown('<div class="nowrap-text">### 사이트</div>', unsafe_allow_html=True)
+        st.markdown('<div class="custom-header">사이트</div>', unsafe_allow_html=True)
     with add_col2:
         with st.popover("➕"):
             with st.form("add_site_form_v5"):
