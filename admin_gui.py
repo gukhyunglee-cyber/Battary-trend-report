@@ -6,12 +6,8 @@ import time
 from github import Github
 from datetime import datetime, time as dtime, timedelta
 
-# Page config: Brand Update to Battery BM
-st.set_page_config(
-    page_title="Battery BM", 
-    page_icon="battery_bm_icon.png", 
-    layout="centered"
-)
+# Page config
+st.set_page_config(page_title="Battery BM", page_icon="battery_bm_icon.png", layout="centered")
 
 # --- CSS: Layout Stabilization ---
 st.markdown("""
@@ -22,12 +18,9 @@ st.markdown("""
         width: 100%;
     }
     .main .block-container { padding: 1rem 0.5rem !important; }
-    .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
     .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
-    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
-        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -75,21 +68,16 @@ def monitor_workflow(repo, workflow_name):
                     break
             time.sleep(2)
         if not last_run:
-            status.update(label="❌ 서버 응답 지연", state="error")
-            return
-        status.write("⏳ 서버 자원을 할당받아 작업을 준비 중입니다...")
+            status.update(label="❌ 서버 응답 지연", state="error"); return
+        status.write("⏳ 서버 작업을 준비 중입니다...")
         while True:
             last_run.update()
-            if last_run.status == "in_progress":
-                status.update(label="⚙️ 리포트 생성 중 (수집/AI 분석)...", state="running")
+            if last_run.status == "in_progress": status.update(label="⚙️ 리포트 생성 중...", state="running")
             elif last_run.status == "completed":
                 if last_run.conclusion == "success":
                     status.update(label="✅ 리포트 생성 완료!", state="complete")
-                    st.toast("모든 작업이 성공적으로 완료되었습니다!")
-                    time.sleep(2)
-                    st.rerun()
-                else: status.update(label="❌ 생성 실패", state="error")
-                break
+                    st.toast("모든 작업이 완료되었습니다!"); time.sleep(2); st.rerun()
+                else: status.update(label="❌ 생성 실패", state="error"); break
             time.sleep(10)
 
 def update_workflow_schedule(new_day_kst, new_time_kst):
@@ -132,7 +120,6 @@ if "config" not in st.session_state: st.session_state.config = load_config()
 if "current_report" not in st.session_state: st.session_state.current_report = ""
 if "ppt_ai_ready" not in st.session_state: st.session_state.ppt_ai_ready = None
 if "ppt_base_ready" not in st.session_state: st.session_state.ppt_base_ready = None
-
 conf = st.session_state.config
 
 # --- UI ---
@@ -173,7 +160,7 @@ with tab2:
                 sites.pop(i); conf["TARGET_SITES"] = sites; st.rerun()
 
 with tab3:
-    st.subheader("시스템 설정")
+    st.markdown('<div class="header-container"><div class="custom-header">시스템 설정</div></div>', unsafe_allow_html=True)
     key = st.text_input("Gemini API Key", value=conf.get("GEMINI_API_KEY", ""), type="password")
     conf["GEMINI_API_KEY"] = key
     st.markdown("---")
@@ -198,7 +185,7 @@ with tab3:
         if st.button("동기", key="btn_sync", use_container_width=True): del st.session_state.config; st.rerun()
 
 with tab4:
-    st.subheader("📝 리포트 센터")
+    st.markdown('<div class="header-container"><div class="custom-header">리포트 센터</div></div>', unsafe_allow_html=True)
     st.markdown("#### 📊 PPT 리포트 다운로드")
     p1, p2 = st.columns(2)
     with p1:
@@ -225,5 +212,4 @@ with tab4:
 
 st.sidebar.image("battery_bm_icon.png", width=100)
 st.sidebar.title("Battery BM")
-st.sidebar.caption("Ver 5.0 (Rebranded)")
-st.sidebar.write(f"발송 예약: {conf.get('SCHEDULE_DAY', '월')}요일 {conf.get('SCHEDULE_TIME', '07:00')}")
+st.sidebar.caption("Ver 5.1 (UI Unified)")
