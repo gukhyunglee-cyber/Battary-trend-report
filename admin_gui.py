@@ -444,7 +444,7 @@ components.html("""
 # ── Session State ─────────────────────────────────────────────────────────────
 if "config" not in st.session_state:
     with st.spinner("동기화 중..."):
-        st.session_state.config = load_config_from_github()
+        st.session_state.config = load_config()
         st.session_state.last_sync = datetime.now().strftime("%H:%M:%S")
 
 conf = st.session_state.config
