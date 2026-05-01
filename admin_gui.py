@@ -18,12 +18,9 @@ st.markdown("""
     .main .block-container { padding: 1rem 0.5rem !important; }
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
-    .report-box { 
-        background-color: #1E1E2E; 
-        padding: 15px; 
-        border-radius: 10px; 
-        border: 1px solid #3E3E4E;
-        margin-bottom: 10px;
+    .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
+    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
+        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -90,6 +87,8 @@ def get_file_data(filename, is_binary=False):
 # --- State ---
 if "config" not in st.session_state: st.session_state.config = load_config()
 if "current_report" not in st.session_state: st.session_state.current_report = ""
+if "ppt_ai_ready" not in st.session_state: st.session_state.ppt_ai_ready = None
+if "ppt_base_ready" not in st.session_state: st.session_state.ppt_base_ready = None
 
 conf = st.session_state.config
 
@@ -161,34 +160,33 @@ with tab3:
 
 with tab4:
     st.subheader("📝 리포트 센터")
+    st.markdown("#### 📊 PPT 다운로드")
+    st.caption("🔍 버튼으로 파일을 먼저 찾은 후, 💾 저장 버튼을 눌러주세요.")
     
-    # 1. PPT 다운로드 (최상단 배치)
-    st.markdown("#### 📊 PPT 리포트 다운로드")
     p1, p2 = st.columns(2)
     with p1:
-        if st.button("AI PPT 준비", use_container_width=True):
-            data = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
-            if data: st.download_button("📥 AI PPT 받기", data, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+        if st.button("🔍 AI PPT 찾기", use_container_width=True):
+            with st.spinner("가져오는 중..."): st.session_state.ppt_ai_ready = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
+        if st.session_state.ppt_ai_ready:
+            st.download_button("💾 AI PPT 저장", st.session_state.ppt_ai_ready, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+
     with p2:
-        if st.button("기본 PPT 준비", use_container_width=True):
-            data = get_file_data("battery_trend_report.pptx", is_binary=True)
-            if data: st.download_button("📥 기본 PPT 받기", data, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+        if st.button("🔍 기본 PPT 찾기", use_container_width=True):
+            with st.spinner("가져오는 중..."): st.session_state.ppt_base_ready = get_file_data("battery_trend_report.pptx", is_binary=True)
+        if st.session_state.ppt_base_ready:
+            st.download_button("💾 기본 PPT 저장", st.session_state.ppt_base_ready, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
     st.markdown("---")
-    
-    # 2. 리포트 내용 미리보기
-    st.markdown("#### 👁️ 내용 미리보기 (PPT/메일 본문)")
-    report_type = st.radio("종류", ["주간 분석 요약", "트렌드 리포트 (PPT 내용)"], horizontal=True)
-    target_file = "weekly_diff_report.md" if report_type == "주간 분석 요약" else "trend_report.md"
-    
+    st.markdown("#### 👁️ 내용 미리보기")
+    r_type = st.radio("종류", ["주간 분석 요약", "트렌드 리포트 (PPT 내용)"], horizontal=True)
     if st.button("내용 불러오기", type="primary", use_container_width=True):
-        with st.spinner("가져오는 중..."):
-            st.session_state.current_report = get_file_data(target_file)
-    
+        f = "weekly_diff_report.md" if r_type == "주간 분석 요약" else "trend_report.md"
+        st.session_state.current_report = get_file_data(f)
     if st.session_state.current_report:
         st.markdown('<div class="report-box">', unsafe_allow_html=True)
         st.markdown(st.session_state.current_report)
         st.markdown('</div>', unsafe_allow_html=True)
 
-st.sidebar.caption("Ver 4.3 (Visibility Improved)")
-st.sidebar.write(f"발송 예약: {conf.get('SCHEDULE_DAY', '월')}요일 {conf.get('SCHEDULE_TIME', '07:00')}")
+st.sidebar.caption("Ver 4.4 (Stable UI & Sync)")
+st.sidebar.write(f"발송 요일: {conf.get('SCHEDULE_DAY', '월')}요일")
+st.sidebar.write(f"발송 시간: {conf.get('SCHEDULE_TIME', '07:00')} (KST)")
