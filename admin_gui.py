@@ -9,7 +9,7 @@ from datetime import datetime
 st.set_page_config(
     page_title="Battery Trend Admin",
     page_icon="⚡",
-    layout="wide"
+    layout="centered"
 )
 
 # Configuration
@@ -95,7 +95,7 @@ st.markdown("""
 
 # --- Tab 1: Recipients ---
 with tab1:
-    header_col, add_col = st.columns([4, 1])
+    header_col, add_col = st.columns([3, 1])
     header_col.subheader("Email Recipients")
     with add_col:
         with st.popover("➕"):
@@ -121,7 +121,7 @@ with tab1:
 
 # --- Tab 2: Target Sites ---
 with tab2:
-    header_col2, add_col2 = st.columns([4, 1])
+    header_col2, add_col2 = st.columns([3, 1])
     header_col2.subheader("Collection Sites")
     with add_col2:
         with st.popover("➕"):
