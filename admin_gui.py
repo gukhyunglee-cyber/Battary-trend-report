@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import base64
 from github import Github
 from datetime import datetime, time, timedelta
 
@@ -39,6 +40,23 @@ def load_config():
         return json.loads(repo.get_contents("config.json").decoded_content.decode("utf-8"))
     except: return {}
 
+def get_file_data(filename, is_binary=False):
+    """대용량 파일(1MB+) 대응 바이너리 로더"""
+    g, rn = get_github()
+    if not g: return None
+    try:
+        repo = g.get_repo(rn)
+        content = repo.get_contents(filename)
+        if is_binary:
+            if content.size > 1000000: # 1MB 초과 시 Blob API 사용
+                blob = repo.get_git_blob(content.sha)
+                return base64.b64decode(blob.content)
+            return content.decoded_content
+        return content.decoded_content.decode("utf-8")
+    except Exception as e:
+        st.error(f"파일을 찾을 수 없습니다: {filename}")
+        return None
+
 def update_workflow_schedule(new_day_kst, new_time_kst):
     g, rn = get_github()
     if not g: return False
@@ -73,16 +91,6 @@ def save_config(cfg, new_day=None, new_time=None):
         if new_day and new_time: update_workflow_schedule(new_day, new_time)
         return True
     except: return False
-
-def get_file_data(filename, is_binary=False):
-    g, rn = get_github()
-    if not g: return None
-    try:
-        repo = g.get_repo(rn)
-        content = repo.get_contents(filename)
-        if is_binary: return content.decoded_content
-        return content.decoded_content.decode("utf-8")
-    except: return None
 
 # --- State ---
 if "config" not in st.session_state: st.session_state.config = load_config()
@@ -147,34 +155,32 @@ with tab3:
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
         if st.button("실행", key="btn_run", use_container_width=True):
-            g, rn = get_github()
-            if g:
-                try: g.get_repo(rn).get_workflow("weekly_report.yml").create_dispatch("main"); st.success("OK")
-                except: st.error("ERR")
+            g, rn = get_github(); repo = g.get_repo(rn); repo.get_workflow("weekly_report.yml").create_dispatch("main"); st.success("OK")
     with sc2:
         if st.button("저장", key="btn_save", use_container_width=True):
             if save_config(conf, new_day, new_time): st.success("OK")
     with sc3:
-        if st.button("동기", key="btn_sync", use_container_width=True):
-            del st.session_state.config; st.rerun()
+        if st.button("동기", key="btn_sync", use_container_width=True): del st.session_state.config; st.rerun()
 
 with tab4:
     st.subheader("📝 리포트 센터")
-    st.markdown("#### 📊 PPT 다운로드")
-    st.caption("🔍 버튼으로 파일을 먼저 찾은 후, 💾 저장 버튼을 눌러주세요.")
+    st.markdown("#### 📊 PPT 리포트 다운로드")
     
-    p1, p2 = st.columns(2)
-    with p1:
-        if st.button("🔍 AI PPT 찾기", use_container_width=True):
-            with st.spinner("가져오는 중..."): st.session_state.ppt_ai_ready = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
-        if st.session_state.ppt_ai_ready:
-            st.download_button("💾 AI PPT 저장", st.session_state.ppt_ai_ready, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+    # AI PPT
+    st.info("💡 **AI 분석 PPT**: Gemini AI가 트렌드를 심층 분석한 리포트 (용량 약 20MB)")
+    if st.button("🔍 AI PPT 데이터 가져오기", use_container_width=True):
+        with st.spinner("대용량 파일 로딩 중..."): st.session_state.ppt_ai_ready = get_file_data("battery_trend_report_ai.pptx", is_binary=True)
+    if st.session_state.ppt_ai_ready:
+        st.download_button("💾 AI PPT 다운로드 시작", st.session_state.ppt_ai_ready, "battery_trend_report_ai.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
-    with p2:
-        if st.button("🔍 기본 PPT 찾기", use_container_width=True):
-            with st.spinner("가져오는 중..."): st.session_state.ppt_base_ready = get_file_data("battery_trend_report.pptx", is_binary=True)
-        if st.session_state.ppt_base_ready:
-            st.download_button("💾 기본 PPT 저장", st.session_state.ppt_base_ready, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+    st.markdown("---")
+    
+    # 기본 PPT
+    st.info("💡 **기본 요약 PPT**: 뉴스 데이터 중심의 전체 요약 리포트")
+    if st.button("🔍 기본 PPT 데이터 가져오기", use_container_width=True):
+        with st.spinner("파일 로딩 중..."): st.session_state.ppt_base_ready = get_file_data("battery_trend_report.pptx", is_binary=True)
+    if st.session_state.ppt_base_ready:
+        st.download_button("💾 기본 PPT 다운로드 시작", st.session_state.ppt_base_ready, "battery_trend_report.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
     st.markdown("---")
     st.markdown("#### 👁️ 내용 미리보기")
@@ -183,10 +189,8 @@ with tab4:
         f = "weekly_diff_report.md" if r_type == "주간 분석 요약" else "trend_report.md"
         st.session_state.current_report = get_file_data(f)
     if st.session_state.current_report:
-        st.markdown('<div class="report-box">', unsafe_allow_html=True)
-        st.markdown(st.session_state.current_report)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="report-box">', unsafe_allow_html=True); st.markdown(st.session_state.current_report); st.markdown('</div>', unsafe_allow_html=True)
 
-st.sidebar.caption("Ver 4.4 (Stable UI & Sync)")
+st.sidebar.caption("Ver 4.5 (Large PPT Support)")
 st.sidebar.write(f"발송 요일: {conf.get('SCHEDULE_DAY', '월')}요일")
 st.sidebar.write(f"발송 시간: {conf.get('SCHEDULE_TIME', '07:00')} (KST)")
