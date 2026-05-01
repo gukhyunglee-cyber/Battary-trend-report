@@ -6,8 +6,12 @@ import time
 from github import Github
 from datetime import datetime, time as dtime, timedelta
 
-# Page config
-st.set_page_config(page_title="Battery Admin", page_icon="⚡", layout="centered")
+# Page config: Brand Update to Battery BM
+st.set_page_config(
+    page_title="Battery BM", 
+    page_icon="battery_bm_icon.png", 
+    layout="centered"
+)
 
 # --- CSS: Layout Stabilization ---
 st.markdown("""
@@ -21,6 +25,9 @@ st.markdown("""
     .header-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .custom-header { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
     .report-box { background-color: #1E1E2E; padding: 15px; border-radius: 10px; border: 1px solid #3E3E4E; }
+    div[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) {
+        display: flex !important; flex-wrap: nowrap !important; gap: 2px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -53,37 +60,27 @@ def get_file_data(filename, is_binary=False):
     except: return None
 
 def monitor_workflow(repo, workflow_name):
-    """GitHub Actions 실행 상태를 실시간 모니터링"""
     with st.status("🚀 리포트 생성 프로세스 시작...", expanded=True) as status:
         status.write("📡 GitHub 서버에 실행 신호를 보냈습니다.")
         workflow = repo.get_workflow(workflow_name)
         workflow.create_dispatch("main")
-        
-        # 1. 실행 시작 대기 (GitHub API 반영 대기)
         time.sleep(5)
-        
         last_run = None
-        for _ in range(60): # 최대 10분 대기 (10s * 60)
+        for _ in range(60):
             runs = workflow.get_runs()
             if runs.totalCount > 0:
                 latest = runs[0]
-                # 최근 1분 이내에 시작된 run 찾기
                 if latest.status in ["in_progress", "queued", "waiting"]:
                     last_run = latest
                     break
             time.sleep(2)
-        
         if not last_run:
             status.update(label="❌ 서버 응답 지연", state="error")
             return
-            
-        # 2. 진행 상황 모니터링
         status.write("⏳ 서버 자원을 할당받아 작업을 준비 중입니다...")
         while True:
             last_run.update()
-            if last_run.status == "queued":
-                pass
-            elif last_run.status == "in_progress":
+            if last_run.status == "in_progress":
                 status.update(label="⚙️ 리포트 생성 중 (수집/AI 분석)...", state="running")
             elif last_run.status == "completed":
                 if last_run.conclusion == "success":
@@ -91,8 +88,7 @@ def monitor_workflow(repo, workflow_name):
                     st.toast("모든 작업이 성공적으로 완료되었습니다!")
                     time.sleep(2)
                     st.rerun()
-                else:
-                    status.update(label="❌ 생성 실패", state="error")
+                else: status.update(label="❌ 생성 실패", state="error")
                 break
             time.sleep(10)
 
@@ -140,12 +136,13 @@ if "ppt_base_ready" not in st.session_state: st.session_state.ppt_base_ready = N
 conf = st.session_state.config
 
 # --- UI ---
-st.title("⚡ Battery Admin")
+st.title("⚡ Battery Benchmark")
+st.caption("인텔리전트 배터리 트렌드 분석기")
 
 tab1, tab2, tab3, tab4 = st.tabs(["👥 수신인", "🌐 사이트", "⚙️ 설정", "📝 리포트"])
 
 with tab1:
-    st.markdown('<div class="header-container"><div class="custom-header">수신인</div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-container"><div class="custom-header">수신인 관리</div>', unsafe_allow_html=True)
     with st.popover("➕"):
         email = st.text_input("이메일")
         if st.button("추가", key="add_email", type="primary", use_container_width=True):
@@ -160,7 +157,7 @@ with tab1:
                 recipients.pop(i); conf["EMAIL_RECIPIENT"] = ", ".join(recipients); st.rerun()
 
 with tab2:
-    st.markdown('<div class="header-container"><div class="custom-header">사이트</div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-container"><div class="custom-header">사이트 모니터링</div>', unsafe_allow_html=True)
     with st.popover("➕"):
         with st.form("add_site"):
             n, u = st.text_input("이름"), st.text_input("URL")
@@ -203,7 +200,7 @@ with tab3:
 
 with tab4:
     st.subheader("📝 리포트 센터")
-    st.markdown("#### 📊 PPT 다운로드")
+    st.markdown("#### 📊 PPT 리포트 다운로드")
     p1, p2 = st.columns(2)
     with p1:
         if st.button("🔍 AI PPT 찾기", use_container_width=True):
@@ -227,6 +224,7 @@ with tab4:
     if st.session_state.current_report:
         st.markdown('<div class="report-box">', unsafe_allow_html=True); st.markdown(st.session_state.current_report); st.markdown('</div>', unsafe_allow_html=True)
 
-st.sidebar.caption("Ver 4.6 (Live Monitoring Added)")
-st.sidebar.write(f"발송 요일: {conf.get('SCHEDULE_DAY', '월')}요일")
-st.sidebar.write(f"발송 시간: {conf.get('SCHEDULE_TIME', '07:00')} (KST)")
+st.sidebar.image("battery_bm_icon.png", width=100)
+st.sidebar.title("Battery BM")
+st.sidebar.caption("Ver 5.0 (Rebranded)")
+st.sidebar.write(f"발송 예약: {conf.get('SCHEDULE_DAY', '월')}요일 {conf.get('SCHEDULE_TIME', '07:00')}")
