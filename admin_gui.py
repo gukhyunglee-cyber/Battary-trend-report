@@ -94,18 +94,17 @@ st.markdown("""
         padding-left: 5px !important;
         padding-right: 5px !important;
     }
-    /* 버튼 패딩 및 폰트 극단적 축소 */
-    div[data-testid="stPopover"] > button, 
+    /* 버튼 패딩 및 너비 극단적 압축 */
     div[data-testid="column"] button {
-        padding: 2px 1px !important;
+        padding: 2px 0px !important;
         font-size: 0.65rem !important;
-        white-space: nowrap !important;
         min-width: 0 !important;
-        border-radius: 4px !important;
+        width: 100% !important;
+        margin: 0 !important;
     }
     /* 컬럼 간격 제로화 */
     div[data-testid="column"] {
-        padding: 0 1px !important;
+        padding: 0 2px !important;
     }
     div[data-testid="stHorizontalBlock"] {
         gap: 0px !important;
@@ -178,7 +177,7 @@ with tab3:
     st.markdown("### 🚀 액션")
     b1, b2, b3 = st.columns(3)
     with b1:
-        if st.button("▶️실행", type="primary", use_container_width=True):
+        if st.button("실행", type="primary", key="btn_run", use_container_width=True):
             g, rn = get_github_client()
             if g:
                 try:
@@ -186,10 +185,10 @@ with tab3:
                     st.success("OK")
                 except: st.error("ERR")
     with b2:
-        if st.button("💾저장", type="primary", use_container_width=True):
+        if st.button("저장", type="primary", key="btn_save", use_container_width=True):
             if save_config(conf): st.success("OK")
     with b3:
-        if st.button("🔄동기", use_container_width=True):
+        if st.button("동기", key="btn_sync", use_container_width=True):
             del st.session_state.config
             st.rerun()
 
