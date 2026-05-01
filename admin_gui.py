@@ -92,13 +92,18 @@ st.markdown("""
     /* 버튼 패딩 축소 및 폰트 크기 조정 */
     div[data-testid="stPopover"] > button, 
     div[data-testid="column"] button {
-        padding: 2px 5px !important;
-        font-size: 0.75rem !important;
+        padding: 2px 2px !important;
+        font-size: 0.7rem !important;
         white-space: nowrap !important;
+        min-width: 0 !important;
     }
-    /* 설정 탭 버튼 전용 압축 */
+    /* 컬럼 간격 및 패딩 극단적 축소 */
+    div[data-testid="column"] {
+        padding-left: 1px !important;
+        padding-right: 1px !important;
+    }
     div[data-testid="stHorizontalBlock"] {
-        gap: 5px !important;
+        gap: 2px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -168,18 +173,18 @@ with tab3:
     st.markdown("### 🚀 액션")
     b1, b2, b3 = st.columns(3)
     with b1:
-        if st.button("▶️ 실행", type="primary", use_container_width=True):
+        if st.button("▶️실행", type="primary", use_container_width=True):
             g, rn = get_github_client()
             if g:
                 try:
                     g.get_repo(rn).get_workflow("weekly_report.yml").create_dispatch("main")
-                    st.success("시작됨!")
-                except: st.error("실행 실패")
+                    st.success("OK")
+                except: st.error("ERR")
     with b2:
-        if st.button("💾 저장", type="primary", use_container_width=True):
-            if save_config(conf): st.success("저장 완료!")
+        if st.button("💾저장", type="primary", use_container_width=True):
+            if save_config(conf): st.success("OK")
     with b3:
-        if st.button("🔄 동기화", use_container_width=True):
+        if st.button("🔄동기", use_container_width=True):
             del st.session_state.config
             st.rerun()
 
